@@ -50,3 +50,55 @@ Works in Google Chrome and other Chromium-based browsers such as Microsoft Edge,
 
 Open source under the MIT License.
 ```
+
+## Privacy Practices
+
+### Single purpose
+
+```text
+Auto Tab Switcher automatically rotates through the open tabs in a browser window on a timer, for unattended displays such as dashboards, monitoring screens and kiosks. The refresh, auto scroll and pause options all exist to keep the rotating pages current and readable while they are shown.
+```
+
+### tabs justification
+
+```text
+Used to list the tabs in the window where the timer is running, activate the next tab on each interval, and reload tabs according to the user's refresh settings. The active tab's URL is read only so the popup can create and apply per-site or per-page refresh and scroll rules. Tab information is never stored outside the browser or sent anywhere.
+```
+
+### storage justification
+
+```text
+Used to save the user's settings (interval, pause mode, auto-start, refresh and scroll defaults, badge color, theme) and their per-site and per-page rules. Everything is kept in chrome.storage.local on the user's device. Nothing is synced or transmitted.
+```
+
+### idle justification
+
+```text
+Used for the optional "Pause Timer: On Activity" mode. The extension checks whether the user is active or idle so it can pause tab switching while someone is using the computer and resume once they stop. Only the active/idle state is read. No input content is captured.
+```
+
+### scripting justification
+
+```text
+Used to inject the extension's own bundled content script (content_scroll.js) into tabs that were already open before the extension was installed or updated, because declared content scripts do not run in those tabs until they reload. That script performs auto scrolling and detects mouse hover for the "Pause On Hover" mode. No remote or dynamically generated code is injected.
+```
+
+### alarms justification
+
+```text
+Used for a periodic heartbeat that wakes the background service worker so it can perform the "refresh periodically, even in background" option, which reloads hidden tabs on schedule so they are up to date when they are shown. Manifest V3 service workers are suspended when idle, so timers alone are not reliable for this.
+```
+
+### Host permission justification
+
+```text
+The extension is meant to rotate whatever pages the user chooses (dashboards, status pages, internal tools), so it cannot know the sites in advance. Access to all URLs is needed so the content script can auto scroll pages and detect hover to pause the timer, and so the scripting permission can inject that same script into tabs opened before installation. The script does not read, collect or modify page content.
+```
+
+### Are you using remote code?
+
+No, I am not using remote code.
+
+```text
+All JavaScript is included in the extension package. There are no externally hosted scripts, no eval or new Function, and no code downloaded at runtime.
+```
