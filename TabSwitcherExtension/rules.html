@@ -46,6 +46,9 @@
             margin-bottom: 12px;
             font-size: 13px;
         }
+        #count {
+            margin-left: auto;
+        }
         input[type="search"] {
             flex: 1;
             max-width: 420px;
@@ -143,6 +146,17 @@
             overflow-wrap: anywhere;
             margin-bottom: 12px;
         }
+        #editTarget.error {
+            color: #d93025;
+        }
+        input[type="text"] {
+            flex: 1;
+            min-width: 0;
+            padding: 4px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
         .control-group {
             display: flex;
             align-items: center;
@@ -194,7 +208,10 @@
             #editTarget {
                 color: #8ab4f8;
             }
-            input[type="search"], input[type="number"], select {
+            #editTarget.error {
+                color: #f28b82;
+            }
+            input[type="search"], input[type="text"], input[type="number"], select {
                 background-color: #292a2d;
                 color: #e8eaed;
                 border-color: #5f6368;
@@ -229,6 +246,7 @@
         <div class="toolbar">
             <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
             <span id="count" class="muted"></span>
+            <button type="button" id="addRule" class="primary">Add rule</button>
         </div>
         <table id="table">
             <colgroup>
@@ -239,7 +257,7 @@
             </thead>
             <tbody id="rules"></tbody>
         </table>
-        <p id="empty" class="muted" hidden>No saved rules yet. Open the extension popup on a page to add one.</p>
+        <p id="empty" class="muted" hidden>No saved rules yet. Click Add rule, or open the extension popup on a page to add one.</p>
         <section class="reset">
             <div>
                 <strong>Reset to defaults</strong>
@@ -251,7 +269,18 @@
 
     <dialog id="editor">
         <form id="editorForm" method="dialog">
-            <h2>Edit rule</h2>
+            <h2 id="editTitle">Edit rule</h2>
+            <div class="control-group">
+                <label for="editType">Apply to:</label>
+                <select id="editType">
+                    <option value="host">Whole site</option>
+                    <option value="page">This page only</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="editUrl" id="editUrlLabel">Site:</label>
+                <input type="text" id="editUrl" spellcheck="false" autocomplete="off" required>
+            </div>
             <div id="editTarget"></div>
             <div class="control-group">
                 <label for="editRefresh">Refresh:</label>

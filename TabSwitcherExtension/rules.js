@@ -10,6 +10,9 @@ async function init() {
     for (const [value, label] of Object.entries(REFRESH_MODES)) $('editRefresh').add(new Option(label, value));
 
     $('filter').addEventListener('input', render);
+    $('editUrl').addEventListener('input', validateUrl);
+    $('editType').addEventListener('change', validateUrl);
+    $('addRule').addEventListener('click', () => openEditor(null));
     $('editRefresh').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
     $('editSpeed').addEventListener('input', () => {
@@ -87,10 +90,13 @@ function render() {
 // ---------- Editing ----------
 
 function openEditor(key) {
-    const rule = settings.pageRules[key];
+    const rule = key ? settings.pageRules[key] : {};
     if (!rule) return;
     editingKey = key;
-    $('editTarget').textContent = (key.startsWith('host:') ? 'Whole site: ' : 'Page: ') + key.slice(5);
+    $('editTitle').textContent = key ? 'Edit rule' : 'Add rule';
+    $('editType').value = key && key.startsWith('page:') ? 'page' : 'host';
+    $('editUrl').value = key ? key.slice(5) : '';
+    validateUrl();
 
     $('editRefresh').value = rule.refresh ? rule.refresh.mode : 'default';
     $('editMinutes').value = (rule.refresh || settings.defaultRefresh).minutes;
@@ -106,7 +112,40 @@ function openEditor(key) {
     $('editor').showModal();
 }
 
+// Returns { key } for a valid entry, or { error } explaining what is wrong.
+function parseTarget(text, isSite) {
+    const value = text.trim();
+    if (!value) return { error: 'Enter a ' + (isSite ? 'site, for example app.example.com.' : 'page URL.') };
+    // Bare hosts such as "example.com:8080" have no scheme, so parse them as https.
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(value) ? value : 'https://' + value;
+    let url;
+    try {
+        url = new URL(withScheme);
+    } catch (e) {
+        return { error: 'Not a valid URL.' };
+    }
+    if (!['http:', 'https:', 'file:'].includes(url.protocol)) {
+        return { error: 'Only http, https and file URLs are supported.' };
+    }
+    const keys = ruleKeysForUrl(url.href);
+    if (!isSite) return { key: keys.page };
+    if (!keys.site) return { error: 'File URLs have no site. Use a page rule instead.' };
+    return { key: keys.site };
+}
+
+function validateUrl() {
+    const isSite = $('editType').value === 'host';
+    $('editUrlLabel').textContent = isSite ? 'Site:' : 'Page URL:';
+    const { key, error } = parseTarget($('editUrl').value, isSite);
+    $('editUrl').setCustomValidity(error || '');
+    // An empty box on a new rule is not a mistake yet, so show the hint without the error color.
+    $('editTarget').classList.toggle('error', !!error && $('editUrl').value.trim() !== '');
+    $('editTarget').textContent = error || (isSite ? 'Whole site: ' : 'Page: ') + key.slice(5);
+    return key;
+}
+
 function updateEditorVisibility() {
+    $('editRefresh').setCustomValidity('');
     $('editMinutesWrap').hidden = !MINUTE_MODES.includes($('editRefresh').value);
     $('editScrollOptions').hidden = $('editScroll').value !== 'on';
 }
@@ -120,7 +159,9 @@ async function updateRules(change) {
 
 async function saveEdit(event) {
     event.preventDefault();
-    const key = editingKey;
+    const oldKey = editingKey;
+    const key = validateUrl();
+    if (!key) return;
     const rule = {};
     const mode = $('editRefresh').value;
     if (mode !== 'default') {
@@ -135,8 +176,16 @@ async function saveEdit(event) {
             scrollSpeed: clampInt($('editSpeed').value, 1, 100, 20)
         };
     }
+    if (!oldKey && !rule.refresh && !rule.scroll) {
+        $('editRefresh').setCustomValidity('Set Refresh or Auto Scroll, otherwise the rule does nothing.');
+        $('editRefresh').reportValidity();
+        return;
+    }
+    if (key !== oldKey && settings.pageRules[key]
+        && !confirm(`A rule for ${key.slice(5)} already exists. Replace it?`)) return;
     await updateRules((rules) => {
-        if (rule.refresh || rule.scroll) rules[key] = rule; else delete rules[key];
+        if (oldKey) delete rules[oldKey];
+        if (rule.refresh || rule.scroll) rules[key] = rule;
     });
     $('editor').close();
 }
