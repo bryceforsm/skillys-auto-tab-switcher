@@ -53,7 +53,7 @@ function button(text, className, onClick) {
 
 function render() {
     $('defaults').textContent =
-        `Default display time: ${describeDisplay(settings.switchInterval)}. ` +
+        `Default show for: ${describeDisplay(settings.switchInterval)}. ` +
         `Default refresh: ${describeRefresh(settings.defaultRefresh)}. ` +
         `Default auto scroll: ${describeScroll(settings.defaultScroll)}.`;
 
@@ -187,7 +187,7 @@ async function saveEdit(event) {
         };
     }
     if (!oldKey && !rule.refresh && !rule.scroll && !rule.display) {
-        $('editRefresh').setCustomValidity('Set Display Time, Refresh or Auto Scroll, otherwise the rule does nothing.');
+        $('editRefresh').setCustomValidity('Set Show For, Refresh or Auto Scroll, otherwise the rule does nothing.');
         $('editRefresh').reportValidity();
         return;
     }

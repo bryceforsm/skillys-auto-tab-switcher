@@ -22,7 +22,7 @@ FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
 - Window isolation: the timer only affects the window it was started in.
 - Smart refresh: reload on every switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
-- Per-site and per-page rules: override display time, refresh and scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
+- Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
 - Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page.
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
@@ -43,7 +43,7 @@ No accounts, no tracking and no data collection. Settings and rules are stored l
 
 HOW TO USE
 1. Open the tabs you want to rotate in one window.
-2. Click the extension icon, set the interval and any refresh or scroll options.
+2. Click the extension icon, set how long each tab is shown and any refresh or scroll options.
 3. Click Start Timer. Click Stop Timer to end the rotation.
 
 Works in Google Chrome and other Chromium-based browsers such as Microsoft Edge, Brave, Vivaldi and Opera.
@@ -110,5 +110,5 @@ Username and password: leave blank (no account or login is required).
 Additional instructions (500 characters max):
 
 ```text
-No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Interval to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Enable Auto Scroll to scroll long pages. Pause Timer: On Hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage rules. Stop Timer ends rotation.
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Enable Auto Scroll to scroll long pages. Pause Timer: On Hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage rules. Stop Timer ends rotation.
 ```

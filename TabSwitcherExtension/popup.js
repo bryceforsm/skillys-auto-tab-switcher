@@ -175,7 +175,7 @@ function updateEffectiveRule() {
         defaultScroll: currentDefaultScroll()
     };
     $('effectiveRule').textContent =
-        'Display time in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
+        'Show for in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
         '\nRefresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
         '\nScroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
 }
