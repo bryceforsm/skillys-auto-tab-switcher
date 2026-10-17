@@ -13,7 +13,7 @@ let loadTimesTimer = null;
 let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
 
-const ready = init().catch((err) => console.error('Auto Tab Switcher failed to initialise', err));
+const ready = init().catch((err) => console.error("Skilly's Auto Tab Switcher failed to initialise", err));
 
 async function init() {
     const [local, session] = await Promise.all([

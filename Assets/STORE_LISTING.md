@@ -11,12 +11,12 @@ Automatically switches tabs at a set interval. Includes per-page refresh rules, 
 ## Description
 
 ```text
-Turn any browser window into a hands-free display. Auto Tab Switcher cycles through your open tabs on a timer, keeps each page fresh, and scrolls long pages for you, so dashboards, monitoring tools, status boards and presentations run on their own.
+Turn any browser window into a hands-free display. Skilly's Auto Tab Switcher cycles through your open tabs on a timer, keeps each page fresh, and scrolls long pages for you, so dashboards, monitoring tools, status boards and presentations run on their own.
 
 It only runs in the window where you start it. Your other windows stay completely normal, so you can keep working on the same computer while a wall display or second monitor rotates in the background.
 
 WHY INSTALL IT
-Most tab rotators either reload every page on every switch (slow and flickery) or never reload at all (stale data). Auto Tab Switcher lets you decide per site or per page. A live dashboard can refresh in the background so it is already up to date when it appears, while a slow report page is only reloaded when it is actually out of date.
+Most tab rotators either reload every page on every switch (slow and flickery) or never reload at all (stale data). Skilly's Auto Tab Switcher lets you decide per site or per page. A live dashboard can refresh in the background so it is already up to date when it appears, while a slow report page is only reloaded when it is actually out of date.
 
 FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
@@ -56,7 +56,7 @@ Open source under the MIT License.
 ### Single purpose
 
 ```text
-Auto Tab Switcher automatically rotates through the open tabs in a browser window on a timer, for unattended displays such as dashboards, monitoring screens and kiosks. The refresh, auto scroll and pause options all exist to keep the rotating pages current and readable while they are shown.
+Skilly's Auto Tab Switcher automatically rotates through the open tabs in a browser window on a timer, for unattended displays such as dashboards, monitoring screens and kiosks. The refresh, auto scroll and pause options all exist to keep the rotating pages current and readable while they are shown.
 ```
 
 ### tabs justification

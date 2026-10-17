@@ -1,4 +1,4 @@
-# Auto Tab Switcher Extension
+# Skilly's Auto Tab Switcher
 
 This extension automatically switches between your open tabs at an interval you set, and it can even refresh them for you. It's designed to only work in the window where you start it, so you can keep using other windows without any interruptions. This can be great for dashboards, monitoring tools, or presentations where you need to cycle through different information displays.
 
