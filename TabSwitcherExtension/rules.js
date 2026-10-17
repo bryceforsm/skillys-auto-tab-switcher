@@ -17,6 +17,7 @@ async function init() {
     });
     $('editorForm').addEventListener('submit', saveEdit);
     $('cancelEdit').addEventListener('click', () => $('editor').close());
+    $('resetAll').addEventListener('click', resetAll);
 
     // Keep the table current if the popup saves while this page is open.
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -144,4 +145,11 @@ async function removeRule(key) {
     await updateRules((rules) => {
         delete rules[key];
     });
+}
+
+async function resetAll() {
+    if (!confirm('Reset all Auto Tab Switcher settings to their defaults?\n\nThis removes every saved rule and cannot be undone.')) return;
+    $('filter').value = '';
+    await chrome.storage.local.clear();
+    await chrome.storage.local.set(structuredClone(DEFAULTS));
 }

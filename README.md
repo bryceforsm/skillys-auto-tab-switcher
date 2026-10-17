@@ -43,7 +43,7 @@ This project is forked from [ethanwa/ChromeAutoTabSwitcherExtension](https://git
         - **Apply to** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **On** shows its own scroll-to-top, delay and speed settings, and **Off** disables scrolling for that page.
         - The lines underneath show which refresh and scroll settings are in effect for the tab.
-    - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. It is also available from **Options** when you right-click the extension icon.
+    - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. It is also available from **Options** when you right-click the extension icon. That page also has **Reset to defaults**, which asks for confirmation and then restores every setting and removes all rules.
     - Choose a **Badge** color.
     - Click **Save Settings**.
 

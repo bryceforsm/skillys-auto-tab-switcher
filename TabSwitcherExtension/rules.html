@@ -111,6 +111,17 @@
             padding: 24px 0;
             text-align: center;
         }
+        .reset {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 32px;
+            padding: 12px;
+            border: 1px solid #f28b82;
+            border-radius: 6px;
+            font-size: 13px;
+        }
         dialog {
             border: 1px solid #dadce0;
             border-radius: 8px;
@@ -227,6 +238,13 @@
             <tbody id="rules"></tbody>
         </table>
         <p id="empty" class="muted" hidden>No saved rules yet. Open the extension popup on a page to add one.</p>
+        <section class="reset">
+            <div>
+                <strong>Reset to defaults</strong>
+                <div class="muted">Restores every extension setting to its default and removes all saved rules.</div>
+            </div>
+            <button type="button" id="resetAll" class="danger">Reset to defaults</button>
+        </section>
     </main>
 
     <dialog id="editor">
