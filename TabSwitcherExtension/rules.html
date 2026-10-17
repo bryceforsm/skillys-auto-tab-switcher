@@ -49,6 +49,14 @@
         #count {
             margin-left: auto;
         }
+        .toolbar-check {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
         input[type="search"] {
             flex: 1;
             max-width: 420px;
@@ -257,6 +265,9 @@
         <div class="toolbar">
             <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
             <span id="count" class="muted"></span>
+            <label class="toolbar-check" title="Also export and import Show Each Tab For, Default Refresh and Default Auto Scroll.">
+                <input type="checkbox" id="includeDefaults"> Include defaults
+            </label>
             <button type="button" id="importRules" title="Add rules from a file exported by this extension.">Import</button>
             <button type="button" id="exportRules" title="Save all rules to a file.">Export</button>
             <input type="file" id="importFile" accept=".json,application/json" hidden>

@@ -16,6 +16,7 @@ async function init() {
     $('exportRules').addEventListener('click', exportRules);
     $('importRules').addEventListener('click', () => $('importFile').click());
     $('importFile').addEventListener('change', importRules);
+    $('includeDefaults').addEventListener('change', render);
     $('editRefresh').addEventListener('change', updateEditorVisibility);
     $('editDisplay').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
@@ -70,7 +71,7 @@ function render() {
 
     $('table').hidden = allKeys.length === 0;
     $('empty').hidden = allKeys.length > 0;
-    $('exportRules').disabled = allKeys.length === 0;
+    $('exportRules').disabled = allKeys.length === 0 && !$('includeDefaults').checked;
     $('count').textContent = filter
         ? `${keys.length} of ${allKeys.length} rules`
         : plural(allKeys.length, 'rule');
@@ -177,10 +178,10 @@ function updateEditorVisibility() {
 }
 
 // Read-modify-write against fresh storage so edits made elsewhere are not overwritten.
-async function updateRules(change) {
+async function updateRules(change, extra = {}) {
     const current = normalizeSettings(await chrome.storage.local.get(null));
     change(current.pageRules);
-    await chrome.storage.local.set({ pageRules: current.pageRules });
+    await chrome.storage.local.set({ ...extra, pageRules: current.pageRules });
 }
 
 async function saveEdit(event) {
@@ -235,8 +236,17 @@ async function removeRule(key) {
 
 // ---------- Import and export ----------
 
+const DEFAULT_LABELS = {
+    switchInterval: 'Show Each Tab For',
+    defaultRefresh: 'Default Refresh',
+    defaultScroll: 'Default Auto Scroll'
+};
+
 function exportRules() {
     const data = { app: "Skilly's Auto Tab Switcher", version: 1, pageRules: settings.pageRules };
+    if ($('includeDefaults').checked) {
+        data.defaults = Object.fromEntries(Object.keys(DEFAULT_LABELS).map((name) => [name, settings[name]]));
+    }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -249,6 +259,15 @@ function exportRules() {
 // Re-derives each key from its URL so hand-edited files end up in the same form the extension writes.
 function canonicalKey(key) {
     return parseTarget(key.slice(5), key.startsWith('host:')).key || null;
+}
+
+// Only the defaults actually present in the file, normalised like stored settings.
+function parseDefaults(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const normalized = normalizeSettings(raw);
+    return Object.fromEntries(Object.keys(DEFAULT_LABELS)
+        .filter((name) => raw[name] !== undefined)
+        .map((name) => [name, normalized[name]]));
 }
 
 async function importRules(event) {
@@ -270,15 +289,24 @@ async function importRules(event) {
         if (canonical) imported[canonical] = rule;
     }
     const keys = Object.keys(imported);
-    if (!keys.length) {
-        alert('No rules found in this file.');
+    const fileDefaults = parseDefaults(data?.defaults);
+    const hasDefaults = Object.keys(fileDefaults).length > 0;
+    const defaults = $('includeDefaults').checked ? fileDefaults : {};
+    const defaultNames = Object.keys(defaults).map((name) => DEFAULT_LABELS[name]);
+    if (!keys.length && !defaultNames.length) {
+        alert(hasDefaults
+            ? 'This file only has default settings. Tick Include defaults to import them.'
+            : 'No rules found in this file.');
         return;
     }
     const replaced = keys.filter((key) => settings.pageRules[key]).length;
-    const message = `Import ${plural(keys.length, 'rule')}?`
-        + (replaced ? `\n\n${plural(replaced, 'existing rule')} for the same site or page will be replaced.` : '');
+    const what = [keys.length && plural(keys.length, 'rule'), defaultNames.length && 'default settings'].filter(Boolean);
+    let message = `Import ${what.join(' and ')}?`;
+    if (replaced) message += `\n\n${plural(replaced, 'existing rule')} for the same site or page will be replaced.`;
+    if (defaultNames.length) message += `\n\nYour current ${defaultNames.join(', ')} will be replaced.`;
+    else if (hasDefaults) message += '\n\nThis file also has default settings. Tick Include defaults to import them too.';
     if (!confirm(message)) return;
-    await updateRules((rules) => Object.assign(rules, imported));
+    await updateRules((rules) => Object.assign(rules, imported), defaults);
 }
 
 async function resetAll() {
