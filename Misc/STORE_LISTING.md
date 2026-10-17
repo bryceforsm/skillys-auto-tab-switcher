@@ -28,7 +28,7 @@ FEATURES
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
 - Full screen on start: go full screen when the timer starts and restore the window when it stops.
 - Countdown badge: see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
-- Rules manager: view, filter, edit and remove all saved rules on one page, with a one-click reset to defaults.
+- Rules manager: view, filter, add, edit and remove all saved rules on one page, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - Light, dark or system theme.
 
 GREAT FOR

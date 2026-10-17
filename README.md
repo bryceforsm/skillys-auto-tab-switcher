@@ -45,7 +45,7 @@ This extension automatically switches between your open tabs at an interval you 
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **On** shows its own scroll-to-top, delay and speed settings, and **Off** disables scrolling for that page.
         - The lines underneath show how long the tab is shown and which refresh and scroll settings are in effect for it.
-    - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. Editing also lets you change the site or page URL a rule applies to, and **Add rule** creates a new site or page rule without visiting the page. It is also available from **Options** when you right-click the extension icon. That page also has **Reset to defaults**, which asks for confirmation and then restores every setting and removes all rules.
+    - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. Editing also lets you change the site or page URL a rule applies to, and **Add rule** creates a new site or page rule without visiting the page. **Export** saves every rule to a `.json` file, and **Import** adds the rules from such a file (rules for the same site or page are replaced, others are kept). It is also available from **Options** when you right-click the extension icon. That page also has **Reset to defaults**, which asks for confirmation and then restores every setting and removes all rules.
     - Choose a **Badge** color.
     - Click **Save Settings**.
 

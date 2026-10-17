@@ -99,6 +99,10 @@
         button:hover {
             background-color: #e8eaed;
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
         button.primary {
             background-color: #1a73e8;
             border-color: #1a73e8;
@@ -253,6 +257,9 @@
         <div class="toolbar">
             <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
             <span id="count" class="muted"></span>
+            <button type="button" id="importRules" title="Add rules from a file exported by this extension.">Import</button>
+            <button type="button" id="exportRules" title="Save all rules to a file.">Export</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
             <button type="button" id="addRule" class="primary">Add rule</button>
         </div>
         <table id="table">

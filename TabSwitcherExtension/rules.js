@@ -13,6 +13,9 @@ async function init() {
     $('editUrl').addEventListener('input', validateUrl);
     $('editType').addEventListener('change', validateUrl);
     $('addRule').addEventListener('click', () => openEditor(null));
+    $('exportRules').addEventListener('click', exportRules);
+    $('importRules').addEventListener('click', () => $('importFile').click());
+    $('importFile').addEventListener('change', importRules);
     $('editRefresh').addEventListener('change', updateEditorVisibility);
     $('editDisplay').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
@@ -51,6 +54,10 @@ function button(text, className, onClick) {
     return b;
 }
 
+function plural(n, word) {
+    return `${n} ${n === 1 ? word : word + 's'}`;
+}
+
 function render() {
     $('defaults').textContent =
         `Default show for: ${describeDisplay(settings.switchInterval)}. ` +
@@ -63,9 +70,10 @@ function render() {
 
     $('table').hidden = allKeys.length === 0;
     $('empty').hidden = allKeys.length > 0;
+    $('exportRules').disabled = allKeys.length === 0;
     $('count').textContent = filter
         ? `${keys.length} of ${allKeys.length} rules`
-        : `${allKeys.length} ${allKeys.length === 1 ? 'rule' : 'rules'}`;
+        : plural(allKeys.length, 'rule');
 
     const rows = keys.map((key) => {
         const rule = settings.pageRules[key];
@@ -132,6 +140,10 @@ function parseTarget(text, isSite) {
     }
     if (!['http:', 'https:', 'file:'].includes(url.protocol)) {
         return { error: 'Only http, https and file URLs are supported.' };
+    }
+    // Chromium percent-encodes some invalid host characters (such as spaces) instead of rejecting them.
+    if (url.hostname && !/^[a-z0-9._-]+$/i.test(url.hostname) && !/^\[[0-9a-f:.]+\]$/i.test(url.hostname)) {
+        return { error: 'Not a valid URL.' };
     }
     const keys = ruleKeysForUrl(url.href);
     const key = isSite ? keys.site : keys.page;
@@ -219,6 +231,54 @@ async function removeRule(key) {
     await updateRules((rules) => {
         delete rules[key];
     });
+}
+
+// ---------- Import and export ----------
+
+function exportRules() {
+    const data = { app: "Skilly's Auto Tab Switcher", version: 1, pageRules: settings.pageRules };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tab-switcher-rules-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Re-derives each key from its URL so hand-edited files end up in the same form the extension writes.
+function canonicalKey(key) {
+    return parseTarget(key.slice(5), key.startsWith('host:')).key || null;
+}
+
+async function importRules(event) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    let data;
+    try {
+        data = JSON.parse(await file.text());
+    } catch (e) {
+        alert('This file is not a valid rules export.');
+        return;
+    }
+    const imported = {};
+    // Also accept a bare map of rules, without the export wrapper.
+    const source = data && typeof data === 'object' && data.pageRules ? data.pageRules : data;
+    for (const [key, rule] of Object.entries(normalizeSettings({ pageRules: source || {} }).pageRules)) {
+        const canonical = canonicalKey(key);
+        if (canonical) imported[canonical] = rule;
+    }
+    const keys = Object.keys(imported);
+    if (!keys.length) {
+        alert('No rules found in this file.');
+        return;
+    }
+    const replaced = keys.filter((key) => settings.pageRules[key]).length;
+    const message = `Import ${plural(keys.length, 'rule')}?`
+        + (replaced ? `\n\n${plural(replaced, 'existing rule')} for the same site or page will be replaced.` : '');
+    if (!confirm(message)) return;
+    await updateRules((rules) => Object.assign(rules, imported));
 }
 
 async function resetAll() {
