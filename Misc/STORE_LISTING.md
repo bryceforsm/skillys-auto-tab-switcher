@@ -22,7 +22,7 @@ FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
 - Window isolation: the timer only affects the window it was started in.
 - Smart refresh: reload on every switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
-- Per-site and per-page rules: override refresh and scrolling for a whole site or a single page. Page rules win over site rules, and each setting falls back to your defaults on its own.
+- Per-site and per-page rules: override display time, refresh and scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
 - Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page.
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.

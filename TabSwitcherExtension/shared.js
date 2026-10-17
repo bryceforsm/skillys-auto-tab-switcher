@@ -14,7 +14,7 @@ const DEFAULTS = {
     pauseMode: 'disable',
     defaultRefresh: { mode: 'switch', minutes: 5 },
     defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
-    // "host:<host>" or "page:<url>" -> { refresh?: {...}, scroll?: {...} }. A missing section means use the default.
+    // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display? }. A missing section means use the default.
     pageRules: {},
     autoStart: false,
     fullscreenOnStart: false,
@@ -50,6 +50,11 @@ function normalizeScroll(scroll, fallback) {
     };
 }
 
+function normalizeDisplay(display, fallback) {
+    if (!display || typeof display !== 'object') return fallback;
+    return { seconds: clampInt(display.seconds, 5, 86400, DEFAULTS.switchInterval) };
+}
+
 function normalizeSettings(raw) {
     const pauseMode = PAUSE_MODES.includes(raw.pauseMode)
         ? raw.pauseMode
@@ -70,10 +75,12 @@ function normalizeSettings(raw) {
         if (!key.startsWith('host:') && !key.startsWith('page:')) continue;
         const refresh = normalizeRefresh(rule && rule.refresh, null);
         const scroll = normalizeScroll(rule && rule.scroll, null);
-        if (!refresh && !scroll) continue;
+        const display = normalizeDisplay(rule && rule.display, null);
+        if (!refresh && !scroll && !display) continue;
         pageRules[key] = {};
         if (refresh) pageRules[key].refresh = refresh;
         if (scroll) pageRules[key].scroll = scroll;
+        if (display) pageRules[key].display = display;
     }
 
     return {
@@ -122,6 +129,15 @@ function refreshRuleFor(settings, url) {
 
 function scrollSettingsFor(settings, url) {
     return ruleSectionFor(settings, url, 'scroll') || settings.defaultScroll;
+}
+
+function displaySecondsFor(settings, url) {
+    const display = ruleSectionFor(settings, url, 'display');
+    return display ? display.seconds : settings.switchInterval;
+}
+
+function describeDisplay(seconds) {
+    return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60} min` : `${seconds} sec`;
 }
 
 function describeRefresh(rule) {

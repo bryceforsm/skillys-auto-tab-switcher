@@ -13,12 +13,12 @@ This extension automatically switches between your open tabs at an interval you 
 ## Features
 
 - **Auto Tab Switching:** Cycles through all open tabs in the window.
-- **Per-Page Rules:** Override refresh and auto scroll for a whole site or a single page. Refresh can happen every switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
+- **Per-Page Rules:** Override display time, refresh and auto scroll for a whole site or a single page. Refresh can happen every switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
 - **Window Isolation:** Works only on the window where it was activated.
 - **Auto Scroll:** Automatically scrolls down the page at a configurable speed.
 - **Pause Modes:** Configurable options to pause the timer on user activity or when hovering over the page.
 - **Auto-Start:** Automatically starts the timer when the browser opens or a new window is created.
-- **Customizable Interval:** Set the switching time in seconds.
+- **Customizable Interval:** Set the switching time in seconds, with longer or shorter display times for individual sites or pages.
 - **Visual Countdown:** Shows a countdown badge on the extension icon.
 - **Customizable Badge:** Change the color of the badge or hide it completely.
 
@@ -42,8 +42,9 @@ This extension automatically switches between your open tabs at an interval you 
         - Adjust **Scroll Speed** slider (1-100).
     - **Current Tab** creates a rule for the site or exact page open in the active tab:
         - **Apply to** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
+        - **Display Time** keeps this site or page on screen for a custom number of seconds before switching, instead of the global **Interval**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **On** shows its own scroll-to-top, delay and speed settings, and **Off** disables scrolling for that page.
-        - The lines underneath show which refresh and scroll settings are in effect for the tab.
+        - The lines underneath show which display time, refresh and scroll settings are in effect for the tab.
     - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. Editing also lets you change the site or page URL a rule applies to, and **Add rule** creates a new site or page rule without visiting the page. It is also available from **Options** when you right-click the extension icon. That page also has **Reset to defaults**, which asks for confirmation and then restores every setting and removes all rules.
     - Choose a **Badge** color.
     - Click **Save Settings**.

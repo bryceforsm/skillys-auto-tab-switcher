@@ -14,6 +14,7 @@ async function init() {
     $('editType').addEventListener('change', validateUrl);
     $('addRule').addEventListener('click', () => openEditor(null));
     $('editRefresh').addEventListener('change', updateEditorVisibility);
+    $('editDisplay').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
     $('editSpeed').addEventListener('input', () => {
         $('editSpeedDisplay').textContent = $('editSpeed').value;
@@ -52,6 +53,7 @@ function button(text, className, onClick) {
 
 function render() {
     $('defaults').textContent =
+        `Default display time: ${describeDisplay(settings.switchInterval)}. ` +
         `Default refresh: ${describeRefresh(settings.defaultRefresh)}. ` +
         `Default auto scroll: ${describeScroll(settings.defaultScroll)}.`;
 
@@ -78,6 +80,7 @@ function render() {
         tr.append(
             cell(key.slice(5), 'target'),
             cell(key.startsWith('host:') ? 'Whole site' : 'Page'),
+            cell(rule.display ? describeDisplay(rule.display.seconds) : 'Default', rule.display ? '' : 'muted'),
             cell(rule.refresh ? describeRefresh(rule.refresh) : 'Default', rule.refresh ? '' : 'muted'),
             cell(rule.scroll ? describeScroll(rule.scroll) : 'Default', rule.scroll ? '' : 'muted'),
             actions
@@ -100,6 +103,9 @@ function openEditor(key) {
 
     $('editRefresh').value = rule.refresh ? rule.refresh.mode : 'default';
     $('editMinutes').value = (rule.refresh || settings.defaultRefresh).minutes;
+
+    $('editDisplay').value = rule.display ? 'custom' : 'default';
+    $('editDisplaySeconds').value = rule.display ? rule.display.seconds : settings.switchInterval;
 
     const scroll = rule.scroll || settings.defaultScroll;
     $('editScroll').value = rule.scroll ? (rule.scroll.autoScroll ? 'on' : 'off') : 'default';
@@ -147,6 +153,7 @@ function validateUrl() {
 function updateEditorVisibility() {
     $('editRefresh').setCustomValidity('');
     $('editMinutesWrap').hidden = !MINUTE_MODES.includes($('editRefresh').value);
+    $('editDisplayWrap').hidden = $('editDisplay').value !== 'custom';
     $('editScrollOptions').hidden = $('editScroll').value !== 'on';
 }
 
@@ -167,6 +174,9 @@ async function saveEdit(event) {
     if (mode !== 'default') {
         rule.refresh = { mode, minutes: clampInt($('editMinutes').value, 1, 1440, 5) };
     }
+    if ($('editDisplay').value === 'custom') {
+        rule.display = { seconds: clampInt($('editDisplaySeconds').value, 5, 86400, 30) };
+    }
     const scrollMode = $('editScroll').value;
     if (scrollMode !== 'default') {
         rule.scroll = {
@@ -176,8 +186,8 @@ async function saveEdit(event) {
             scrollSpeed: clampInt($('editSpeed').value, 1, 100, 20)
         };
     }
-    if (!oldKey && !rule.refresh && !rule.scroll) {
-        $('editRefresh').setCustomValidity('Set Refresh or Auto Scroll, otherwise the rule does nothing.');
+    if (!oldKey && !rule.refresh && !rule.scroll && !rule.display) {
+        $('editRefresh').setCustomValidity('Set Display Time, Refresh or Auto Scroll, otherwise the rule does nothing.');
         $('editRefresh').reportValidity();
         return;
     }
@@ -185,7 +195,7 @@ async function saveEdit(event) {
         && !confirm(`A rule for ${key.slice(5)} already exists. Replace it?`)) return;
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
-        if (rule.refresh || rule.scroll) rules[key] = rule;
+        if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;
     });
     $('editor').close();
 }

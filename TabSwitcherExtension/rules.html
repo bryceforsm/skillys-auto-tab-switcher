@@ -75,8 +75,9 @@
         }
         col.target { width: auto; }
         col.type { width: 90px; }
-        col.refresh { width: 23%; }
-        col.scroll { width: 23%; }
+        col.display { width: 100px; }
+        col.refresh { width: 20%; }
+        col.scroll { width: 20%; }
         col.actions { width: 160px; }
         td.target {
             /* Long URLs wrap instead of forcing a horizontal scrollbar. */
@@ -250,10 +251,10 @@
         </div>
         <table id="table">
             <colgroup>
-                <col class="target"><col class="type"><col class="refresh"><col class="scroll"><col class="actions">
+                <col class="target"><col class="type"><col class="display"><col class="refresh"><col class="scroll"><col class="actions">
             </colgroup>
             <thead>
-                <tr><th>Applies to</th><th>Type</th><th>Refresh</th><th>Auto scroll</th><th></th></tr>
+                <tr><th>Applies to</th><th>Type</th><th>Display time</th><th>Refresh</th><th>Auto scroll</th><th></th></tr>
             </thead>
             <tbody id="rules"></tbody>
         </table>
@@ -282,6 +283,17 @@
                 <input type="text" id="editUrl" spellcheck="false" autocomplete="off" required>
             </div>
             <div id="editTarget"></div>
+            <div class="control-group">
+                <label for="editDisplay">Display Time:</label>
+                <select id="editDisplay">
+                    <option value="default">Use default</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="editDisplayWrap" class="control-group">
+                <label for="editDisplaySeconds">Seconds:</label>
+                <input type="number" id="editDisplaySeconds" min="5" max="86400" value="30">
+            </div>
             <div class="control-group">
                 <label for="editRefresh">Refresh:</label>
                 <select id="editRefresh">

@@ -53,7 +53,7 @@ async function init() {
         loadEditorRule();
         checkUnsavedChanges();
     });
-    for (const id of ['ruleMode', 'ruleMinutes', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
+    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
         $(id).addEventListener('input', onRuleEdit);
         $(id).addEventListener('change', onRuleEdit);
     }
@@ -79,6 +79,10 @@ async function init() {
 function fillModeSelect(select, includeDefault) {
     if (includeDefault) select.add(new Option('Use default', 'default'));
     for (const [value, label] of Object.entries(REFRESH_MODES)) select.add(new Option(label, value));
+}
+
+function currentInterval() {
+    return clampInt($('interval').value, 5, 86400, 30);
 }
 
 function currentDefaultRefresh() {
@@ -123,6 +127,9 @@ function loadEditorRule() {
     $('ruleMode').value = rule.refresh ? rule.refresh.mode : 'default';
     $('ruleMinutes').value = (rule.refresh || currentDefaultRefresh()).minutes;
 
+    $('ruleDisplayMode').value = rule.display ? 'custom' : 'default';
+    $('ruleDisplaySeconds').value = rule.display ? rule.display.seconds : currentInterval();
+
     const scroll = rule.scroll || currentDefaultScroll();
     $('ruleScrollMode').value = rule.scroll ? (rule.scroll.autoScroll ? 'on' : 'off') : 'default';
     $('ruleScrollToTop').checked = scroll.scrollToTop;
@@ -141,6 +148,9 @@ function onRuleEdit() {
     if (mode !== 'default') {
         rule.refresh = { mode, minutes: clampInt($('ruleMinutes').value, 1, 1440, 5) };
     }
+    if ($('ruleDisplayMode').value === 'custom') {
+        rule.display = { seconds: clampInt($('ruleDisplaySeconds').value, 5, 86400, 30) };
+    }
     const scrollMode = $('ruleScrollMode').value;
     if (scrollMode !== 'default') {
         rule.scroll = {
@@ -150,7 +160,7 @@ function onRuleEdit() {
             scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20)
         };
     }
-    if (rule.refresh || rule.scroll) rules[key] = rule; else delete rules[key];
+    if (rule.refresh || rule.scroll || rule.display) rules[key] = rule; else delete rules[key];
     updateVisibility();
     renderRuleList();
     checkUnsavedChanges();
@@ -158,9 +168,15 @@ function onRuleEdit() {
 
 function updateEffectiveRule() {
     if (!pageKeys) return;
-    const s = { pageRules: rules, defaultRefresh: currentDefaultRefresh(), defaultScroll: currentDefaultScroll() };
+    const s = {
+        pageRules: rules,
+        switchInterval: currentInterval(),
+        defaultRefresh: currentDefaultRefresh(),
+        defaultScroll: currentDefaultScroll()
+    };
     $('effectiveRule').textContent =
-        'Refresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
+        'Display time in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
+        '\nRefresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
         '\nScroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
 }
 
@@ -183,12 +199,13 @@ function manageRules() {
 function updateVisibility() {
     $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
     $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
+    $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
     $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
 }
 
 function collectSettings() {
     return {
-        switchInterval: clampInt($('interval').value, 5, 86400, 30),
+        switchInterval: currentInterval(),
         pauseMode: $('pauseMode').value,
         autoStart: $('autoStart').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,

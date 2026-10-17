@@ -333,6 +333,17 @@
                 <label for="ruleMinutes">Minutes:</label>
                 <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
             </div>
+            <div class="control-group" title="How long this site or page stays on screen before switching to the next tab.">
+                <label for="ruleDisplayMode">Display Time:</label>
+                <select id="ruleDisplayMode">
+                    <option value="default">Use default</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="ruleDisplayWrap" class="control-group" title="Seconds to show this site or page before switching.">
+                <label for="ruleDisplaySeconds">Seconds:</label>
+                <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
+            </div>
             <div class="control-group" title="Whether this site or page auto scrolls.">
                 <label for="ruleScrollMode">Auto Scroll:</label>
                 <select id="ruleScrollMode">
