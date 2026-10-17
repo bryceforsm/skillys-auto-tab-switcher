@@ -1,10 +1,10 @@
 # Auto Tab Switcher Extension
 
-This extension automatically switches between your open tabs at an interval you set, and it can even refresh them for you. It's designed to only work in the window where you start it, so you can keep using other windows without any interruptions. This can be great for dashboards, monitoring tools, or presentations where you need to cycle through different information displays. Since **Revolver - Tabs** is no longer available, this plugin acts as a functional alternative.
+This extension automatically switches between your open tabs at an interval you set, and it can even refresh them for you. It's designed to only work in the window where you start it, so you can keep using other windows without any interruptions. This can be great for dashboards, monitoring tools, or presentations where you need to cycle through different information displays.
 
 **Compatibility:** Since it's built for Chrome, it works with all Chromium-based browsers like **Google Chrome**, **Microsoft Edge**, **Brave**, **Vivaldi**, and **Opera**.
 
-This project is forked from [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension).
+**Why another tab rotator?** There are plenty of auto tab rotators on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
 <p align="center">
   <img src="Screenshot/screenshot.png" alt="Screenshot">
@@ -54,6 +54,9 @@ This project is forked from [ethanwa/ChromeAutoTabSwitcherExtension](https://git
 
 3.  **Badge Visibility:**
     - Click the **Hide/Show Badge** button to toggle the countdown display.
+
+4.  **Theme:**
+    - Use the **Theme** dropdown at the top of the popup to choose **System** (default, follows your OS light or dark setting), **Light**, or **Dark**. It applies immediately to the popup and the rules page.
 
 ## Installation (From Source)
 

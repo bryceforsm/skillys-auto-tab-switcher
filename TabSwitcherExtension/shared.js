@@ -19,7 +19,8 @@ const DEFAULTS = {
     autoStart: false,
     fullscreenOnStart: false,
     badgeColor: '#32cd32',
-    badgeVisible: true
+    badgeVisible: true,
+    theme: 'system'
 };
 
 // Keys written by earlier versions, migrated by normalizeSettings.
@@ -84,7 +85,8 @@ function normalizeSettings(raw) {
         autoStart: raw.autoStart === true,
         fullscreenOnStart: raw.fullscreenOnStart === true,
         badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
-        badgeVisible: raw.badgeVisible !== false
+        badgeVisible: raw.badgeVisible !== false,
+        theme: ['system', 'light', 'dark'].includes(raw.theme) ? raw.theme : 'system'
     };
 }
 

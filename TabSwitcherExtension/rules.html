@@ -179,7 +179,8 @@
             gap: 8px;
             margin-top: 12px;
         }
-        @media (prefers-color-scheme: dark) {
+        :root[data-theme="dark"] {
+            color-scheme: dark;
             body, dialog {
                 background-color: #202124;
                 color: #e8eaed;
@@ -216,6 +217,7 @@
             }
         }
     </style>
+    <script src="theme.js"></script>
 </head>
 <body>
     <main>

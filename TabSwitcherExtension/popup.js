@@ -28,6 +28,7 @@ async function init() {
     $('interval').value = s.switchInterval;
     $('pauseMode').value = s.pauseMode;
     $('autoStart').checked = s.autoStart;
+    $('theme').value = s.theme;
     $('fullscreenOnStart').checked = s.fullscreenOnStart;
     $('defaultMode').value = s.defaultRefresh.mode;
     $('defaultMinutes').value = s.defaultRefresh.minutes;
@@ -65,6 +66,8 @@ async function init() {
     $('saveAll').addEventListener('click', save);
     $('toggleTimer').addEventListener('click', toggleTimer);
     $('toggleBadge').addEventListener('click', toggleBadge);
+    // Applies immediately, like the badge toggle, rather than waiting for Save Settings.
+    $('theme').addEventListener('change', () => chrome.storage.local.set({ theme: $('theme').value }));
     $('manageRules').addEventListener('click', manageRules);
 
     updateBadgeButtonState();

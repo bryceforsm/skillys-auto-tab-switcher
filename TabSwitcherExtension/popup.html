@@ -194,7 +194,8 @@
             font-size: 13px;
             margin-bottom: 10px;
         }
-        @media (prefers-color-scheme: dark) {
+        :root[data-theme="dark"] {
+            color-scheme: dark;
             body {
                 background-color: #202124;
                 color: #e8eaed;
@@ -231,7 +232,17 @@
                 color: #aecbfa;
             }
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #theme {
+            width: auto;
+            font-size: 13px;
+        }
     </style>
+    <script src="theme.js"></script>
 </head>
 <body>
     <div class="header-container">
@@ -239,7 +250,15 @@
             <img src="icons/icon128.png" alt="Logo" width="32" height="32">
             <h2>Auto Tab Switcher</h2>
         </div>
-        <button id="toggleTimer">Start Timer</button>
+        <div class="header-actions">
+            <label for="theme" title="Color theme for the extension pages. System follows your OS setting.">Theme:</label>
+            <select id="theme" title="Color theme for the extension pages. System follows your OS setting.">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+            <button id="toggleTimer">Start Timer</button>
+        </div>
     </div>
     <div class="columns">
     <div>
