@@ -32,7 +32,7 @@ async function init() {
     $('fullscreenOnStart').checked = s.fullscreenOnStart;
     $('defaultMode').value = s.defaultRefresh.mode;
     $('defaultMinutes').value = s.defaultRefresh.minutes;
-    $('autoScroll').checked = s.defaultScroll.autoScroll;
+    $('autoScroll').value = s.defaultScroll.autoScroll ? 'on' : 'off';
     $('scrollToTop').checked = s.defaultScroll.scrollToTop;
     $('scrollDelay').value = s.defaultScroll.scrollDelay;
     $('scrollSpeed').value = s.defaultScroll.scrollSpeed;
@@ -91,7 +91,7 @@ function currentDefaultRefresh() {
 
 function currentDefaultScroll() {
     return {
-        autoScroll: $('autoScroll').checked,
+        autoScroll: $('autoScroll').value === 'on',
         scrollToTop: $('scrollToTop').checked,
         scrollDelay: clampInt($('scrollDelay').value, 0, 3600, 5),
         scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20)
@@ -178,9 +178,9 @@ function updateEffectiveRule() {
         defaultScroll: currentDefaultScroll()
     };
     $('effectiveRule').textContent =
-        'Show for in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
+        'Show For in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
         '\nRefresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
-        '\nScroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
+        '\nAuto Scroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
 }
 
 function renderRuleList() {

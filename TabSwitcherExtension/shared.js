@@ -1,8 +1,8 @@
 // Shared by the service worker (importScripts) and the popup (<script>).
 
 const REFRESH_MODES = {
+    never: 'Disable',
     switch: 'Every switch',
-    never: 'Never',
     stale: 'On switch, if older than',
     background: 'Periodically, even in background'
 };
@@ -153,7 +153,7 @@ function describeRefresh(rule) {
 }
 
 function describeScroll(scroll) {
-    if (!scroll.autoScroll) return 'Off';
+    if (!scroll.autoScroll) return 'Disable';
     const delay = scroll.scrollDelay ? `, ${scroll.scrollDelay}s delay` : '';
     return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}`;
 }

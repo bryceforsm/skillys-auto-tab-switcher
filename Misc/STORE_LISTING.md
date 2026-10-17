@@ -74,13 +74,13 @@ Used to save the user's settings (interval, pause mode, auto-start, refresh and 
 ### idle justification
 
 ```text
-Used for the optional "Pause Timer: On Activity" mode. The extension checks whether the user is active or idle so it can pause tab switching while someone is using the computer and resume once they stop. Only the active/idle state is read. No input content is captured.
+Used for the optional "Pause Timer: On activity" mode. The extension checks whether the user is active or idle so it can pause tab switching while someone is using the computer and resume once they stop. Only the active/idle state is read. No input content is captured.
 ```
 
 ### scripting justification
 
 ```text
-Used to inject the extension's own bundled content script (content_scroll.js) into tabs that were already open before the extension was installed or updated, because declared content scripts do not run in those tabs until they reload. That script performs auto scrolling and detects mouse hover for the "Pause On Hover" mode. No remote or dynamically generated code is injected.
+Used to inject the extension's own bundled content script (content_scroll.js) into tabs that were already open before the extension was installed or updated, because declared content scripts do not run in those tabs until they reload. That script performs auto scrolling and detects mouse hover for the "Pause Timer: On hover" mode. No remote or dynamically generated code is injected.
 ```
 
 ### alarms justification
@@ -110,5 +110,5 @@ Username and password: leave blank (no account or login is required).
 Additional instructions (500 characters max):
 
 ```text
-No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Enable Auto Scroll to scroll long pages. Pause Timer: On Hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage rules. Stop Timer ends rotation.
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Auto Scroll: Enable scrolls long pages. Pause Timer: On hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage Rules. Stop Timer ends rotation.
 ```

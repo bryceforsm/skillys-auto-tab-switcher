@@ -23,7 +23,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 
 ## Constraints
 
-- Chrome caps popups at 800x600. The popup is about 586px tall with everything expanded, so any new row there needs space found elsewhere.
+- Chrome caps popups at 800x600. The popup is about 590px tall with everything expanded, so any new row there needs space found elsewhere.
 - The dark theme uses nested `:root[data-theme="dark"]` rules that outrank `#id.class` selectors. Every new state class (for example `.unsaved` or `.warning`) needs a dark variant too.
 - No network requests, remote code, `eval` or `new Function`. The store privacy answers in `Misc/STORE_LISTING.md` depend on this.
 - `<all_urls>` is intentional. See `Misc/designnotes.md`.

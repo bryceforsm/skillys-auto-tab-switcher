@@ -3,6 +3,8 @@ const MINUTE_MODES = ['stale', 'background'];
 
 let settings = normalizeSettings({});
 let editingKey = null;
+let sortColumn = 'target';
+let sortDirection = 1;
 
 init();
 
@@ -10,6 +12,14 @@ async function init() {
     for (const [value, label] of Object.entries(REFRESH_MODES)) $('editRefresh').add(new Option(label, value));
 
     $('filter').addEventListener('input', render);
+    for (const header of document.querySelectorAll('button.sort')) {
+        header.addEventListener('click', () => {
+            const column = header.dataset.sort;
+            sortDirection = column === sortColumn ? -sortDirection : 1;
+            sortColumn = column;
+            render();
+        });
+    }
     $('editUrl').addEventListener('input', validateUrl);
     $('editType').addEventListener('change', validateUrl);
     $('addRule').addEventListener('click', () => openEditor(null));
@@ -59,15 +69,88 @@ function plural(n, word) {
     return `${n} ${n === 1 ? word : word + 's'}`;
 }
 
+function siteHomeUrl(host) {
+    const hostname = host.replace(/:\d+$/, '');
+    // Site rules don't store a scheme. Local names and IPs rarely have certificates.
+    const local = hostname === 'localhost' || !hostname.includes('.') || /^[\d.]+$/.test(hostname) || hostname.startsWith('[');
+    return (local ? 'http://' : 'https://') + host + '/';
+}
+
+function targetCell(key) {
+    const td = cell('', 'target');
+    const text = key.slice(5);
+    const url = key.startsWith('host:') ? siteHomeUrl(text) : text;
+    // Only link URLs the extension itself would produce, never arbitrary schemes from storage.
+    if (!ruleKeysForUrl(url)) {
+        td.textContent = text;
+        return td;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = 'Open in a new tab';
+    a.textContent = text;
+    // Extension pages cannot open file:// links directly, but chrome.tabs.create can.
+    a.addEventListener('click', (event) => {
+        event.preventDefault();
+        chrome.tabs.create({ url });
+    });
+    td.append(a);
+    return td;
+}
+
+// Sort value for a column, or null for "Default" cells, which always go last.
+function sortValue(key, column) {
+    const rule = settings.pageRules[key];
+    switch (column) {
+        case 'type': return key.startsWith('host:') ? 'Whole site' : 'Page';
+        case 'display': return rule.display ? rule.display.seconds : null;
+        case 'refresh': return rule.refresh ? describeRefresh(rule.refresh) : null;
+        case 'scroll': return rule.scroll ? describeScroll(rule.scroll) : null;
+        // The scheme and "www." are left out so a site and its pages sort together.
+        default: return key.slice(5).replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+    }
+}
+
+function compareValues(a, b) {
+    return typeof a === 'number' && typeof b === 'number'
+        ? a - b
+        : String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function sortKeys(keys) {
+    return keys.sort((a, b) => {
+        const va = sortValue(a, sortColumn);
+        const vb = sortValue(b, sortColumn);
+        if (va === null || vb === null) {
+            if (va !== vb) return va === null ? 1 : -1;
+        } else {
+            const result = compareValues(va, vb) * sortDirection;
+            if (result) return result;
+        }
+        return compareValues(sortValue(a, 'target'), sortValue(b, 'target'));
+    });
+}
+
 function render() {
     $('defaults').textContent =
-        `Default show for: ${describeDisplay(settings.switchInterval)}. ` +
-        `Default refresh: ${describeRefresh(settings.defaultRefresh)}. ` +
-        `Default auto scroll: ${describeScroll(settings.defaultScroll)}.`;
+        `Default Show For: ${describeDisplay(settings.switchInterval)}. ` +
+        `Default Refresh: ${describeRefresh(settings.defaultRefresh)}. ` +
+        `Default Auto Scroll: ${describeScroll(settings.defaultScroll)}.`;
 
-    const allKeys = Object.keys(settings.pageRules).sort();
+    const allKeys = Object.keys(settings.pageRules);
     const filter = $('filter').value.trim().toLowerCase();
-    const keys = allKeys.filter((key) => key.slice(5).toLowerCase().includes(filter));
+    const keys = sortKeys(allKeys.filter((key) => key.slice(5).toLowerCase().includes(filter)));
+
+    for (const header of document.querySelectorAll('button.sort')) {
+        const th = header.parentElement;
+        if (header.dataset.sort === sortColumn) {
+            th.setAttribute('aria-sort', sortDirection === 1 ? 'ascending' : 'descending');
+        } else {
+            th.removeAttribute('aria-sort');
+        }
+    }
 
     $('table').hidden = allKeys.length === 0;
     $('empty').hidden = allKeys.length > 0;
@@ -87,7 +170,7 @@ function render() {
             button('Remove', 'danger', () => removeRule(key))
         );
         tr.append(
-            cell(key.slice(5), 'target'),
+            targetCell(key),
             cell(key.startsWith('host:') ? 'Whole site' : 'Page'),
             cell(rule.display ? describeDisplay(rule.display.seconds) : 'Default', rule.display ? '' : 'muted'),
             cell(rule.refresh ? describeRefresh(rule.refresh) : 'Default', rule.refresh ? '' : 'muted'),
@@ -105,7 +188,7 @@ function openEditor(key) {
     const rule = key ? settings.pageRules[key] : {};
     if (!rule) return;
     editingKey = key;
-    $('editTitle').textContent = key ? 'Edit rule' : 'Add rule';
+    $('editTitle').textContent = key ? 'Edit Rule' : 'Add Rule';
     $('editType').value = key && key.startsWith('page:') ? 'page' : 'host';
     $('editUrl').value = key ? key.slice(5) : '';
     validateUrl();
@@ -295,7 +378,7 @@ async function importRules(event) {
     const defaultNames = Object.keys(defaults).map((name) => DEFAULT_LABELS[name]);
     if (!keys.length && !defaultNames.length) {
         alert(hasDefaults
-            ? 'This file only has default settings. Tick Include defaults to import them.'
+            ? 'This file only has default settings. Tick Include Defaults to import them.'
             : 'No rules found in this file.');
         return;
     }
@@ -304,7 +387,7 @@ async function importRules(event) {
     let message = `Import ${what.join(' and ')}?`;
     if (replaced) message += `\n\n${plural(replaced, 'existing rule')} for the same site or page will be replaced.`;
     if (defaultNames.length) message += `\n\nYour current ${defaultNames.join(', ')} will be replaced.`;
-    else if (hasDefaults) message += '\n\nThis file also has default settings. Tick Include defaults to import them too.';
+    else if (hasDefaults) message += '\n\nThis file also has default settings. Tick Include Defaults to import them too.';
     if (!confirm(message)) return;
     await updateRules((rules) => Object.assign(rules, imported), defaults);
 }
