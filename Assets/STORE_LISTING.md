@@ -102,3 +102,13 @@ No, I am not using remote code.
 ```text
 All JavaScript is included in the extension package. There are no externally hosted scripts, no eval or new Function, and no code downloaded at runtime.
 ```
+
+## Test Instructions
+
+Username and password: leave blank (no account or login is required).
+
+Additional instructions (500 characters max):
+
+```text
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Interval to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Enable Auto Scroll to scroll long pages. Pause Timer: On Hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage rules. Stop Timer ends rotation.
+```
