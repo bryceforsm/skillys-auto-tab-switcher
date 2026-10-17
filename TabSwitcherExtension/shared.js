@@ -98,6 +98,7 @@ function normalizeSettings(raw) {
 }
 
 // Rule keys for a URL: "host:<host>" for the whole site, "page:<url without query or hash>" for one page.
+// The twin keys are the same URL with "www." added or removed, which counts as the same site.
 function ruleKeysForUrl(url) {
     let u;
     try {
@@ -106,9 +107,12 @@ function ruleKeysForUrl(url) {
         return null;
     }
     if (!['http:', 'https:', 'file:'].includes(u.protocol)) return null;
+    const twin = u.host.startsWith('www.') ? u.host.slice(4) : 'www.' + u.host;
     return {
         site: u.host ? 'host:' + u.host : null,
-        page: 'page:' + u.protocol + '//' + u.host + u.pathname
+        page: 'page:' + u.protocol + '//' + u.host + u.pathname,
+        siteTwin: u.host ? 'host:' + twin : null,
+        pageTwin: u.host ? 'page:' + u.protocol + '//' + twin + u.pathname : null
     };
 }
 
@@ -116,10 +120,10 @@ function ruleKeysForUrl(url) {
 function ruleSectionFor(settings, url, section) {
     const keys = ruleKeysForUrl(url);
     if (!keys) return null;
-    const page = settings.pageRules[keys.page];
-    if (page && page[section]) return page[section];
-    const site = keys.site && settings.pageRules[keys.site];
-    if (site && site[section]) return site[section];
+    for (const key of [keys.page, keys.pageTwin, keys.site, keys.siteTwin]) {
+        const rule = key && settings.pageRules[key];
+        if (rule && rule[section]) return rule[section];
+    }
     return null;
 }
 

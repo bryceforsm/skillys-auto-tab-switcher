@@ -107,6 +107,9 @@ function setupPageEditor(tab) {
         $('pageRuleUnavailable').hidden = false;
         return;
     }
+    // Edit a rule saved under the www or non-www form rather than creating a second one.
+    if (!rules[pageKeys.site] && rules[pageKeys.siteTwin]) pageKeys.site = pageKeys.siteTwin;
+    if (!rules[pageKeys.page] && rules[pageKeys.pageTwin]) pageKeys.page = pageKeys.pageTwin;
     pageUrl = tab.url;
     const url = new URL(tab.url);
     $('pageLabel').textContent = url.host + url.pathname;
@@ -228,13 +231,17 @@ function onFormChange() {
 
 function checkUnsavedChanges() {
     const saveBtn = $('saveAll');
+    const status = $('status');
     if (snapshot() !== savedSnapshot) {
         saveBtn.classList.add('unsaved');
         saveBtn.textContent = 'Save Settings (Unsaved Changes)';
-        $('status').textContent = '';
+        status.textContent = 'Unsaved changes are lost when this popup closes.';
+        status.classList.add('warning');
     } else {
         saveBtn.classList.remove('unsaved');
         saveBtn.textContent = 'Save Settings';
+        if (status.classList.contains('warning')) status.textContent = '';
+        status.classList.remove('warning');
     }
 }
 

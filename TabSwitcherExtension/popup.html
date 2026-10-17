@@ -63,6 +63,25 @@
             font-size: 14px;
             width: 220px;
         }
+        .inline-inputs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 220px;
+        }
+        .inline-inputs select {
+            flex: 1;
+            min-width: 0;
+            width: auto;
+        }
+        .inline-inputs span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .inline-inputs input[type="number"] {
+            width: 50px;
+        }
         input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -95,12 +114,23 @@
             background-color: #e8eaed;
         }
         #saveAll.unsaved {
-            background-color: #1a73e8;
+            background-color: #e37400;
             color: white;
-            border: 1px solid #1a73e8;
+            border: 1px solid #e37400;
+            font-weight: 600;
+            animation: unsaved-pulse 1.6s ease-in-out infinite;
         }
         #saveAll.unsaved:hover {
-            background-color: #1557b0;
+            background-color: #c26401;
+        }
+        @keyframes unsaved-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(227, 116, 0, 0.7); }
+            50% { box-shadow: 0 0 0 4px rgba(227, 116, 0, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #saveAll.unsaved {
+                animation: none;
+            }
         }
         #toggleTimer {
             background-color: #1e8e3e;
@@ -136,6 +166,10 @@
             font-size: 12px;
             color: #188038;
             text-align: center;
+        }
+        #status.warning {
+            color: #b06000;
+            font-weight: 600;
         }
         .header-container {
             display: flex;
@@ -224,6 +258,17 @@
             }
             #saveAll:hover {
                 background-color: #3c4043;
+            }
+            #saveAll.unsaved {
+                background-color: #fbbc04;
+                color: #202124;
+                border-color: #fbbc04;
+            }
+            #saveAll.unsaved:hover {
+                background-color: #fdd663;
+            }
+            #status.warning {
+                color: #fdd663;
             }
             .link-button {
                 color: #8ab4f8;
@@ -325,6 +370,19 @@
                     <option value="page">This page only</option>
                 </select>
             </div>
+            <div class="control-group" title="How long this site or page stays on screen before switching to the next tab.">
+                <label for="ruleDisplayMode">Show For:</label>
+                <div class="inline-inputs">
+                    <select id="ruleDisplayMode">
+                        <option value="default">Use default</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <span id="ruleDisplayWrap">
+                        <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
+                        <label for="ruleDisplaySeconds">sec</label>
+                    </span>
+                </div>
+            </div>
             <div class="control-group" title="How this site or page is refreshed.">
                 <label for="ruleMode">Refresh:</label>
                 <select id="ruleMode"></select>
@@ -332,17 +390,6 @@
             <div id="ruleMinutesWrap" class="control-group" title="Age limit or refresh period for this rule, in minutes.">
                 <label for="ruleMinutes">Minutes:</label>
                 <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
-            </div>
-            <div class="control-group" title="How long this site or page stays on screen before switching to the next tab.">
-                <label for="ruleDisplayMode">Show For:</label>
-                <select id="ruleDisplayMode">
-                    <option value="default">Use default</option>
-                    <option value="custom">Custom</option>
-                </select>
-            </div>
-            <div id="ruleDisplayWrap" class="control-group" title="Seconds to show this site or page before switching.">
-                <label for="ruleDisplaySeconds">Seconds:</label>
-                <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
             </div>
             <div class="control-group" title="Whether this site or page auto scrolls.">
                 <label for="ruleScrollMode">Auto Scroll:</label>

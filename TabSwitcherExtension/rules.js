@@ -134,20 +134,27 @@ function parseTarget(text, isSite) {
         return { error: 'Only http, https and file URLs are supported.' };
     }
     const keys = ruleKeysForUrl(url.href);
-    if (!isSite) return { key: keys.page };
-    if (!keys.site) return { error: 'File URLs have no site. Use a page rule instead.' };
-    return { key: keys.site };
+    const key = isSite ? keys.site : keys.page;
+    if (!key) return { error: 'File URLs have no site. Use a page rule instead.' };
+    const twin = isSite ? keys.siteTwin : keys.pageTwin;
+    const host = url.hostname;
+    if (host && !host.includes('.') && !host.startsWith('[') && host !== 'localhost') {
+        return { key, twin, warning: ` (no dot, so this only matches a computer on your local network. Did you mean ${host}.com?)` };
+    }
+    return { key, twin };
 }
 
 function validateUrl() {
     const isSite = $('editType').value === 'host';
     $('editUrlLabel').textContent = isSite ? 'Site:' : 'Page URL:';
-    const { key, error } = parseTarget($('editUrl').value, isSite);
+    const result = parseTarget($('editUrl').value, isSite);
+    const { key, error, warning } = result;
     $('editUrl').setCustomValidity(error || '');
     // An empty box on a new rule is not a mistake yet, so show the hint without the error color.
     $('editTarget').classList.toggle('error', !!error && $('editUrl').value.trim() !== '');
-    $('editTarget').textContent = error || (isSite ? 'Whole site: ' : 'Page: ') + key.slice(5);
-    return key;
+    $('editTarget').classList.toggle('warning', !!warning);
+    $('editTarget').textContent = error || (isSite ? 'Whole site: ' : 'Page: ') + key.slice(5) + (warning || '');
+    return result;
 }
 
 function updateEditorVisibility() {
@@ -167,7 +174,7 @@ async function updateRules(change) {
 async function saveEdit(event) {
     event.preventDefault();
     const oldKey = editingKey;
-    const key = validateUrl();
+    const { key, twin } = validateUrl();
     if (!key) return;
     const rule = {};
     const mode = $('editRefresh').value;
@@ -189,6 +196,14 @@ async function saveEdit(event) {
     if (!oldKey && !rule.refresh && !rule.scroll && !rule.display) {
         $('editRefresh').setCustomValidity('Set Show For, Refresh or Auto Scroll, otherwise the rule does nothing.');
         $('editRefresh').reportValidity();
+        return;
+    }
+    if (key !== oldKey && twin && twin !== oldKey && settings.pageRules[twin]) {
+        const what = key.startsWith('host:') ? 'site' : 'page';
+        if (confirm(`A rule for ${twin.slice(5)} already covers this ${what}. Edit that rule instead?`)) {
+            $('editor').close();
+            openEditor(twin);
+        }
         return;
     }
     if (key !== oldKey && settings.pageRules[key]
