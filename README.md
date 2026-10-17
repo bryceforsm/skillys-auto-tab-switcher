@@ -7,7 +7,7 @@ This extension automatically switches between your open tabs at an interval you 
 **Why another tab rotator?** There are plenty of auto tab rotators on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
 <p align="center">
-  <img src="Screenshot/screenshot.png" alt="Screenshot">
+  <img src="Misc/screenshot.png" alt="Screenshot">
 </p>
 
 ## Features
