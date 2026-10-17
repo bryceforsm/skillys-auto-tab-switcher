@@ -17,6 +17,7 @@ const DEFAULTS = {
     // "host:<host>" or "page:<url>" -> { refresh?: {...}, scroll?: {...} }. A missing section means use the default.
     pageRules: {},
     autoStart: false,
+    fullscreenOnStart: false,
     badgeColor: '#32cd32',
     badgeVisible: true
 };
@@ -81,6 +82,7 @@ function normalizeSettings(raw) {
         defaultScroll,
         pageRules,
         autoStart: raw.autoStart === true,
+        fullscreenOnStart: raw.fullscreenOnStart === true,
         badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
         badgeVisible: raw.badgeVisible !== false
     };

@@ -29,6 +29,7 @@ This project is forked from [ethanwa/ChromeAutoTabSwitcherExtension](https://git
     - Set the **Interval** in seconds (minimum 5).
     - Select **Pause Timer** mode: Disable, On Activity, or On Hover.
     - Toggle **Auto-Start Timer on Browser Launch** if desired (also applies to new windows).
+    - Toggle **Full Screen on Timer Start** to put the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
     - **Default Refresh** sets how pages without their own rule are refreshed. Refresh modes:
         - **Every switch:** reload each time the tab is shown.
         - **Never:** never reload.

@@ -28,6 +28,7 @@ async function init() {
     $('interval').value = s.switchInterval;
     $('pauseMode').value = s.pauseMode;
     $('autoStart').checked = s.autoStart;
+    $('fullscreenOnStart').checked = s.fullscreenOnStart;
     $('defaultMode').value = s.defaultRefresh.mode;
     $('defaultMinutes').value = s.defaultRefresh.minutes;
     $('autoScroll').checked = s.defaultScroll.autoScroll;
@@ -42,7 +43,7 @@ async function init() {
     updateVisibility();
     savedSnapshot = snapshot();
 
-    for (const id of ['interval', 'pauseMode', 'autoStart', 'defaultMode', 'defaultMinutes', 'autoScroll',
+    for (const id of ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart', 'defaultMode', 'defaultMinutes', 'autoScroll',
         'scrollToTop', 'scrollDelay', 'scrollSpeed', 'badgeColor']) {
         $(id).addEventListener('input', onFormChange);
         $(id).addEventListener('change', onFormChange);
@@ -187,6 +188,7 @@ function collectSettings() {
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
         autoStart: $('autoStart').checked,
+        fullscreenOnStart: $('fullscreenOnStart').checked,
         defaultRefresh: currentDefaultRefresh(),
         defaultScroll: currentDefaultScroll(),
         pageRules: Object.fromEntries(Object.keys(rules).sort().map((key) => [key, rules[key]])),

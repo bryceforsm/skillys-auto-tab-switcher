@@ -41,6 +41,7 @@ async function init() {
         const w = newWindowState(windowId);
         w.deadline = saved.deadline ?? null;
         w.remaining = saved.remaining ?? w.remaining;
+        w.restoreState = saved.restoreState ?? null;
         const tab = await getActiveTab(windowId);
         w.activeTabId = tab ? tab.id : null;
         windows.set(windowId, w);
@@ -62,7 +63,8 @@ function newWindowState(windowId) {
         hoverPaused: false,
         switchingTo: null,    // tab we activated ourselves, so onActivated can ignore it
         activeTabId: null,
-        badgeTabId: null
+        badgeTabId: null,
+        restoreState: null    // window state to return to on stop, set only if we made it full screen
     };
 }
 
@@ -93,7 +95,9 @@ function restartCountdown(w) {
 
 function persistRunning() {
     const running = {};
-    for (const [id, w] of windows) running[id] = { deadline: w.deadline, remaining: w.remaining };
+    for (const [id, w] of windows) {
+        running[id] = { deadline: w.deadline, remaining: w.remaining, restoreState: w.restoreState };
+    }
     chrome.storage.session.set({ running });
 }
 
@@ -106,12 +110,33 @@ async function startWindow(windowId) {
     if (windows.has(windowId)) return;
     const w = newWindowState(windowId);
     windows.set(windowId, w);
+    if (settings.fullscreenOnStart) await enterFullscreen(w);
     const tab = await getActiveTab(windowId);
     w.activeTabId = tab ? tab.id : null;
     restartCountdown(w);
     if (tab && !activityPaused) startScrolling(tab.id, true);
     ensureTicker();
     renderBadge(windowId);
+}
+
+async function enterFullscreen(w) {
+    const win = await chrome.windows.get(w.windowId).catch(() => null);
+    if (!win || win.state === 'fullscreen') return;
+    try {
+        await chrome.windows.update(w.windowId, { state: 'fullscreen' });
+        w.restoreState = win.state === 'minimized' ? 'normal' : win.state;
+    } catch (e) {
+        // Some window types or platforms refuse full screen. Keep running windowed.
+    }
+}
+
+// Only undoes full screen we applied, and only if the user has not already left it.
+async function exitFullscreen(w) {
+    if (!w.restoreState) return;
+    const win = await chrome.windows.get(w.windowId).catch(() => null);
+    if (win && win.state === 'fullscreen') {
+        await chrome.windows.update(w.windowId, { state: w.restoreState }).catch(() => {});
+    }
 }
 
 // Drops runtime state. Returns false if the window was not running.
@@ -129,7 +154,9 @@ function forgetWindow(windowId) {
 }
 
 async function stopWindow(windowId) {
+    const w = windows.get(windowId);
     if (!forgetWindow(windowId)) return;
+    exitFullscreen(w);
     const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
     for (const tab of tabs) {
         clearBadge(tab.id);
