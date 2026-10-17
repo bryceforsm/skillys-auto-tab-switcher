@@ -1,208 +1,258 @@
-// Global state variables for the popup UI
+const $ = (id) => document.getElementById(id);
+const MINUTE_MODES = ['stale', 'background'];
+
+let currentWindowId = null;
 let timerRunning = false;
 let badgeVisible = true;
-let initialSettings = {};
-let currentWindowId = null;
+let rules = {};        // working copy of pageRules, persisted by Save Settings
+let pageKeys = null;   // rule keys for the active tab, null when rules cannot apply to it
+let pageUrl = '';
+let savedSnapshot = '';
 
-document.addEventListener('DOMContentLoaded', function() {
-    chrome.windows.getCurrent((currentWindow) => {
-        currentWindowId = currentWindow.id;
-        
-        // Retrieve stored states for badge visibility, switch interval, and badge color
-        chrome.storage.local.get(['badgeVisible', 'switchInterval', 'badgeColor', 'pauseOnActivity', 'autoRefresh', 'autoStart', 'autoScroll', 'pauseOnHover', 'scrollSpeed', 'scrollToTop', 'scrollDelay'], function(data) {
-            badgeVisible = data.hasOwnProperty('badgeVisible') ? data.badgeVisible : true;
+init();
 
-            // Check running state for THIS window via message
-            chrome.runtime.sendMessage({command: "getTimerState", windowId: currentWindowId}, (response) => {
-                timerRunning = response && response.running;
-                updateButtonState();
-            });
+async function init() {
+    fillModeSelect($('defaultMode'), false);
+    fillModeSelect($('ruleMode'), true);
 
-            // Set the interval in the UI
-            let interval = data.switchInterval || 30; // Default to 30 seconds if not set
-            document.getElementById('interval').value = interval;
+    const [win, [tab], stored] = await Promise.all([
+        chrome.windows.getCurrent(),
+        chrome.tabs.query({ active: true, currentWindow: true }),
+        chrome.storage.local.get(null)
+    ]);
+    currentWindowId = win.id;
+    const s = normalizeSettings(stored);
 
-            // Set the badge color in the UI
-            let color = data.badgeColor || '#32cd32'; // Default to green if not set
-            document.getElementById('badgeColor').value = color;
+    badgeVisible = s.badgeVisible;
+    rules = structuredClone(s.pageRules);
+    $('interval').value = s.switchInterval;
+    $('pauseMode').value = s.pauseMode;
+    $('autoStart').checked = s.autoStart;
+    $('defaultMode').value = s.defaultRefresh.mode;
+    $('defaultMinutes').value = s.defaultRefresh.minutes;
+    $('autoScroll').checked = s.defaultScroll.autoScroll;
+    $('scrollToTop').checked = s.defaultScroll.scrollToTop;
+    $('scrollDelay').value = s.defaultScroll.scrollDelay;
+    $('scrollSpeed').value = s.defaultScroll.scrollSpeed;
+    $('scrollSpeedDisplay').textContent = s.defaultScroll.scrollSpeed;
+    $('badgeColor').value = s.badgeColor;
 
-            // Set the pause mode
-            let pauseOnActivity = data.pauseOnActivity || false;
-            let pauseOnHover = data.hasOwnProperty('pauseOnHover') ? data.pauseOnHover : false;
-            let pauseMode = 'disable';
-            if (pauseOnActivity) pauseMode = 'activity';
-            else if (pauseOnHover) pauseMode = 'hover';
-            document.getElementById('pauseMode').value = pauseMode;
+    setupPageEditor(tab);
+    renderRuleList();
+    updateVisibility();
+    savedSnapshot = snapshot();
 
-            // Set the auto refresh checkbox
-            let autoRefresh = data.hasOwnProperty('autoRefresh') ? data.autoRefresh : true;
-            document.getElementById('autoRefresh').checked = autoRefresh;
-
-            // Set the auto start checkbox
-            let autoStart = data.hasOwnProperty('autoStart') ? data.autoStart : false;
-            document.getElementById('autoStart').checked = autoStart;
-
-            // Set the auto scroll checkbox
-            let autoScroll = data.hasOwnProperty('autoScroll') ? data.autoScroll : false;
-            document.getElementById('autoScroll').checked = autoScroll;
-
-            // Set the scroll to top checkbox
-            let scrollToTop = data.hasOwnProperty('scrollToTop') ? data.scrollToTop : false;
-            document.getElementById('scrollToTop').checked = scrollToTop;
-
-            // Set the scroll delay
-            let scrollDelay = data.hasOwnProperty('scrollDelay') ? data.scrollDelay : 5;
-            document.getElementById('scrollDelay').value = scrollDelay;
-
-            // Set the scroll speed slider
-            let scrollSpeed = data.scrollSpeed || 20;
-            document.getElementById('scrollSpeed').value = scrollSpeed;
-            document.getElementById('scrollSpeedDisplay').textContent = scrollSpeed;
-
-            // Update display when slider moves
-            document.getElementById('scrollSpeed').addEventListener('input', function() {
-                document.getElementById('scrollSpeedDisplay').textContent = this.value;
-            });
-
-            // Initialize initialSettings for change detection
-            initialSettings = {
-                switchInterval: interval,
-                badgeColor: color,
-                pauseMode: pauseMode,
-                autoRefresh: autoRefresh,
-                autoStart: autoStart,
-                autoScroll: autoScroll,
-                scrollToTop: scrollToTop,
-                scrollDelay: scrollDelay,
-                scrollSpeed: scrollSpeed
-            };
-
-            // Add event listeners for change detection
-            const inputs = ['interval', 'pauseMode', 'autoRefresh', 'autoStart', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed', 'badgeColor'];
-            inputs.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('input', checkUnsavedChanges);
-                    el.addEventListener('change', checkUnsavedChanges);
-                }
-            });
-
-            // Update the button states
-            updateButtonState();
-            updateBadgeButtonState();
-        });
+    for (const id of ['interval', 'pauseMode', 'autoStart', 'defaultMode', 'defaultMinutes', 'autoScroll',
+        'scrollToTop', 'scrollDelay', 'scrollSpeed', 'badgeColor']) {
+        $(id).addEventListener('input', onFormChange);
+        $(id).addEventListener('change', onFormChange);
+    }
+    $('ruleScope').addEventListener('change', () => {
+        loadEditorRule();
+        checkUnsavedChanges();
     });
-});
+    for (const id of ['ruleMode', 'ruleMinutes', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
+        $(id).addEventListener('input', onRuleEdit);
+        $(id).addEventListener('change', onRuleEdit);
+    }
+    $('scrollSpeed').addEventListener('input', () => {
+        $('scrollSpeedDisplay').textContent = $('scrollSpeed').value;
+    });
+    $('ruleScrollSpeed').addEventListener('input', () => {
+        $('ruleScrollSpeedDisplay').textContent = $('ruleScrollSpeed').value;
+    });
+    $('saveAll').addEventListener('click', save);
+    $('toggleTimer').addEventListener('click', toggleTimer);
+    $('toggleBadge').addEventListener('click', toggleBadge);
+    $('manageRules').addEventListener('click', manageRules);
+
+    updateBadgeButtonState();
+    const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
+    timerRunning = !!response?.running;
+    updateButtonState();
+}
+
+function fillModeSelect(select, includeDefault) {
+    if (includeDefault) select.add(new Option('Use default', 'default'));
+    for (const [value, label] of Object.entries(REFRESH_MODES)) select.add(new Option(label, value));
+}
+
+function currentDefaultRefresh() {
+    return { mode: $('defaultMode').value, minutes: clampInt($('defaultMinutes').value, 1, 1440, 5) };
+}
+
+function currentDefaultScroll() {
+    return {
+        autoScroll: $('autoScroll').checked,
+        scrollToTop: $('scrollToTop').checked,
+        scrollDelay: clampInt($('scrollDelay').value, 0, 3600, 5),
+        scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20)
+    };
+}
+
+// ---------- Per-page rule editor ----------
+
+function setupPageEditor(tab) {
+    pageKeys = tab ? ruleKeysForUrl(tab.url) : null;
+    if (!pageKeys) {
+        $('pageRuleEditor').hidden = true;
+        $('pageRuleUnavailable').hidden = false;
+        return;
+    }
+    pageUrl = tab.url;
+    const url = new URL(tab.url);
+    $('pageLabel').textContent = url.host + url.pathname;
+    $('pageLabel').title = tab.url;
+    // file:// pages have no host, so only a page rule makes sense.
+    $('ruleScope').querySelector('option[value="site"]').disabled = !pageKeys.site;
+    $('ruleScope').value = rules[pageKeys.page] || !pageKeys.site ? 'page' : 'site';
+    loadEditorRule();
+}
+
+function editorKey() {
+    return $('ruleScope').value === 'page' ? pageKeys.page : pageKeys.site;
+}
+
+function loadEditorRule() {
+    if (!pageKeys) return;
+    const rule = rules[editorKey()] || {};
+    $('ruleMode').value = rule.refresh ? rule.refresh.mode : 'default';
+    $('ruleMinutes').value = (rule.refresh || currentDefaultRefresh()).minutes;
+
+    const scroll = rule.scroll || currentDefaultScroll();
+    $('ruleScrollMode').value = rule.scroll ? (rule.scroll.autoScroll ? 'on' : 'off') : 'default';
+    $('ruleScrollToTop').checked = scroll.scrollToTop;
+    $('ruleScrollDelay').value = scroll.scrollDelay;
+    $('ruleScrollSpeed').value = scroll.scrollSpeed;
+    $('ruleScrollSpeedDisplay').textContent = scroll.scrollSpeed;
+
+    updateVisibility();
+    updateEffectiveRule();
+}
+
+function onRuleEdit() {
+    const key = editorKey();
+    const rule = {};
+    const mode = $('ruleMode').value;
+    if (mode !== 'default') {
+        rule.refresh = { mode, minutes: clampInt($('ruleMinutes').value, 1, 1440, 5) };
+    }
+    const scrollMode = $('ruleScrollMode').value;
+    if (scrollMode !== 'default') {
+        rule.scroll = {
+            autoScroll: scrollMode === 'on',
+            scrollToTop: $('ruleScrollToTop').checked,
+            scrollDelay: clampInt($('ruleScrollDelay').value, 0, 3600, 5),
+            scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20)
+        };
+    }
+    if (rule.refresh || rule.scroll) rules[key] = rule; else delete rules[key];
+    updateVisibility();
+    renderRuleList();
+    checkUnsavedChanges();
+}
+
+function updateEffectiveRule() {
+    if (!pageKeys) return;
+    const s = { pageRules: rules, defaultRefresh: currentDefaultRefresh(), defaultScroll: currentDefaultScroll() };
+    $('effectiveRule').textContent =
+        'Refresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
+        '\nScroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
+}
+
+function renderRuleList() {
+    $('ruleCount').textContent = Object.keys(rules).length;
+    updateEffectiveRule();
+}
+
+function manageRules() {
+    // Opening a tab closes the popup, which would silently drop unsaved edits.
+    if (snapshot() !== savedSnapshot) {
+        $('status').textContent = 'Save your changes before opening the rules page.';
+        return;
+    }
+    chrome.runtime.openOptionsPage();
+}
+
+// ---------- Form state ----------
+
+function updateVisibility() {
+    $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
+    $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
+    $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
+}
+
+function collectSettings() {
+    return {
+        switchInterval: clampInt($('interval').value, 5, 86400, 30),
+        pauseMode: $('pauseMode').value,
+        autoStart: $('autoStart').checked,
+        defaultRefresh: currentDefaultRefresh(),
+        defaultScroll: currentDefaultScroll(),
+        pageRules: Object.fromEntries(Object.keys(rules).sort().map((key) => [key, rules[key]])),
+        badgeColor: $('badgeColor').value
+    };
+}
+
+function snapshot() {
+    return JSON.stringify(collectSettings());
+}
+
+function onFormChange() {
+    updateVisibility();
+    updateEffectiveRule();
+    checkUnsavedChanges();
+}
 
 function checkUnsavedChanges() {
-    const currentSettings = {
-        switchInterval: parseInt(document.getElementById('interval').value, 10) || 0,
-        badgeColor: document.getElementById('badgeColor').value,
-        pauseMode: document.getElementById('pauseMode').value,
-        autoRefresh: document.getElementById('autoRefresh').checked,
-        autoStart: document.getElementById('autoStart').checked,
-        autoScroll: document.getElementById('autoScroll').checked,
-        scrollToTop: document.getElementById('scrollToTop').checked,
-        scrollDelay: parseInt(document.getElementById('scrollDelay').value, 10) || 0,
-        scrollSpeed: parseInt(document.getElementById('scrollSpeed').value, 10) || 0
-    };
-
-    const hasChanges = JSON.stringify(initialSettings) !== JSON.stringify(currentSettings);
-    const saveBtn = document.getElementById('saveAll');
-    
-    if (hasChanges) {
+    const saveBtn = $('saveAll');
+    if (snapshot() !== savedSnapshot) {
         saveBtn.classList.add('unsaved');
         saveBtn.textContent = 'Save Settings (Unsaved Changes)';
-        document.getElementById('status').textContent = '';
+        $('status').textContent = '';
     } else {
         saveBtn.classList.remove('unsaved');
         saveBtn.textContent = 'Save Settings';
     }
 }
 
-// Updates the text and style of the Start/Stop Timer button
-function updateButtonState() {
-    const button = document.getElementById('toggleTimer');
-    button.textContent = timerRunning ? "Stop Timer" : "Start Timer";
-    if (timerRunning) {
-        button.classList.add('running');
-    } else {
-        button.classList.remove('running');
-    }
+async function save() {
+    const settings = collectSettings();
+    await chrome.storage.local.set(settings);
+    await chrome.storage.local.remove(LEGACY_KEYS);
+
+    // Show the values as they were clamped and saved.
+    $('interval').value = settings.switchInterval;
+    $('scrollDelay').value = settings.defaultScroll.scrollDelay;
+    $('defaultMinutes').value = settings.defaultRefresh.minutes;
+    loadEditorRule();
+
+    savedSnapshot = snapshot();
+    checkUnsavedChanges();
+    $('status').textContent = 'Settings saved.';
 }
 
-// Updates the text of the Hide/Show Badge button
-function updateBadgeButtonState() {
-    document.getElementById('toggleBadge').textContent = badgeVisible ? "Hide Badge" : "Show Badge";
-}
+// ---------- Timer and badge buttons ----------
 
-// Event listener for the "Save Settings" button
-document.getElementById('saveAll').addEventListener('click', () => {
-    let interval = parseInt(document.getElementById('interval').value, 10);
-    // Validate interval (minimum 5 seconds)
-    if (isNaN(interval) || interval < 5) {
-        interval = 5;
-        document.getElementById('interval').value = 5;
-    }
-
-    let pauseMode = document.getElementById('pauseMode').value;
-    let pauseOnActivity = (pauseMode === 'activity');
-    let pauseOnHover = (pauseMode === 'hover');
-    let autoRefresh = document.getElementById('autoRefresh').checked;
-    let autoStart = document.getElementById('autoStart').checked;
-    let badgeColor = document.getElementById('badgeColor').value;
-    let autoScroll = document.getElementById('autoScroll').checked;
-    let scrollSpeed = parseInt(document.getElementById('scrollSpeed').value, 10);
-    let scrollToTop = document.getElementById('scrollToTop').checked;
-    let scrollDelay = parseInt(document.getElementById('scrollDelay').value, 10);
-
-    // Save settings to local storage and notify background script
-    chrome.storage.local.set({switchInterval: interval, pauseOnActivity: pauseOnActivity, autoRefresh: autoRefresh, autoStart: autoStart, badgeColor: badgeColor, autoScroll: autoScroll, pauseOnHover: pauseOnHover, scrollSpeed: scrollSpeed, scrollToTop: scrollToTop, scrollDelay: scrollDelay}, function() {
-        document.getElementById('status').textContent = 'Settings saved.';
-        
-        // Stop the timer if it is running
-        if (timerRunning) {
-            timerRunning = false;
-            updateButtonState();
-            chrome.runtime.sendMessage({command: "stopTimer", windowId: currentWindowId});
-        }
-
-        // Update initialSettings to match the newly saved values
-        initialSettings = {
-            switchInterval: interval,
-            badgeColor: badgeColor,
-            pauseMode: pauseMode,
-            autoRefresh: autoRefresh,
-            autoStart: autoStart,
-            autoScroll: autoScroll,
-            scrollToTop: scrollToTop,
-            scrollDelay: scrollDelay,
-            scrollSpeed: scrollSpeed
-        };
-        checkUnsavedChanges();
-
-        chrome.runtime.sendMessage({command: "updateInterval", interval: interval});
-        chrome.runtime.sendMessage({command: "updatePauseOnActivity", pauseOnActivity: pauseOnActivity});
-        chrome.runtime.sendMessage({command: "updateAutoRefresh", autoRefresh: autoRefresh});
-        chrome.runtime.sendMessage({command: "updateBadgeColor", color: badgeColor});
-        chrome.runtime.sendMessage({command: "updateAutoScroll", autoScroll: autoScroll});
-        chrome.runtime.sendMessage({command: "updatePauseOnHover", pauseOnHover: pauseOnHover});
-        chrome.runtime.sendMessage({command: "updateScrollSpeed", speed: scrollSpeed});
-        chrome.runtime.sendMessage({command: "updateScrollToTop", scrollToTop: scrollToTop});
-        chrome.runtime.sendMessage({command: "updateScrollDelay", scrollDelay: scrollDelay});
-    });
-});
-
-// Event listener for the "Start/Stop Timer" button
-document.getElementById('toggleTimer').addEventListener('click', () => {
-    timerRunning = !timerRunning;
+async function toggleTimer() {
+    const command = timerRunning ? 'stopTimer' : 'startTimer';
+    const response = await chrome.runtime.sendMessage({ command, windowId: currentWindowId });
+    timerRunning = !!response?.running;
     updateButtonState();
-    chrome.runtime.sendMessage({command: timerRunning ? "startTimer" : "stopTimer", windowId: currentWindowId});
-});
+}
 
-// Event listener for the "Hide/Show Badge" button
-document.getElementById('toggleBadge').addEventListener('click', () => {
+function toggleBadge() {
     badgeVisible = !badgeVisible;
+    chrome.storage.local.set({ badgeVisible });
     updateBadgeButtonState();
-    chrome.runtime.sendMessage({command: badgeVisible ? "showBadge" : "hideBadge"});
-});
+}
+
+function updateButtonState() {
+    const button = $('toggleTimer');
+    button.textContent = timerRunning ? 'Stop Timer' : 'Start Timer';
+    button.classList.toggle('running', timerRunning);
+}
+
+function updateBadgeButtonState() {
+    $('toggleBadge').textContent = badgeVisible ? 'Hide Badge' : 'Show Badge';
+}

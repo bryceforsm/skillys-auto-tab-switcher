@@ -1,562 +1,491 @@
-// Global variables to manage extension state
-let switchInterval = 30000; // Default interval is 30 seconds
-let badgeVisible = true; // To track if the badge should be shown
-let badgeColor = '#32cd32';
-let pauseOnActivity = false;
-let autoRefresh = true;
+importScripts('shared.js');
+
+const PAUSE_COLOR = '#d93025';
+const IDLE_SECONDS = 15;
+const LOAD_TIMEOUT_MS = 30000;
+const HEARTBEAT_ALARM = 'heartbeat';
+const STOP_SCROLLING = { command: 'stopScrolling' };
+
+let settings = normalizeSettings({});
 let activityPaused = false;
-let autoScroll = false;
-let pauseOnHover = false;
-let scrollSpeed = 20;
-let scrollToTop = false;
-let scrollDelay = 5;
+let tabLoadedAt = {}; // tabId -> timestamp of the last completed load
+let loadTimesTimer = null;
+let ticker = null;
+const windows = new Map(); // windowId -> state, only for windows where the timer is running
 
-let windowStates = {}; // Map windowId to state { intervalId, running, loadingTabId, startGeneration }
+const ready = init().catch((err) => console.error('Auto Tab Switcher failed to initialise', err));
 
-// Save state to storage to persist across service worker restarts
-function saveWindowStates() {
-    const statesToSave = {};
-    for (const windowId in windowStates) {
-        statesToSave[windowId] = {
-            running: windowStates[windowId].running,
-            startGeneration: windowStates[windowId].startGeneration,
-            loadingTabId: null // Reset loading state
-        };
+async function init() {
+    const [local, session] = await Promise.all([
+        chrome.storage.local.get(null),
+        chrome.storage.session.get(['running', 'tabLoadedAt'])
+    ]);
+    settings = normalizeSettings(local);
+    tabLoadedAt = session.tabLoadedAt || {};
+
+    chrome.idle.setDetectionInterval(IDLE_SECONDS);
+    // Wakes the worker if Chrome suspends it, and drives background refreshes.
+    if (!(await chrome.alarms.get(HEARTBEAT_ALARM))) {
+        chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 0.5 });
     }
-    chrome.storage.local.set({ windowStates: statesToSave });
+    await refreshActivityState();
+
+    // Session storage survives a worker restart but not a browser restart, so window IDs here are still valid.
+    for (const [id, saved] of Object.entries(session.running || {})) {
+        const windowId = Number(id);
+        try {
+            await chrome.windows.get(windowId);
+        } catch (e) {
+            continue;
+        }
+        const w = newWindowState(windowId);
+        w.deadline = saved.deadline ?? null;
+        w.remaining = saved.remaining ?? w.remaining;
+        const tab = await getActiveTab(windowId);
+        w.activeTabId = tab ? tab.id : null;
+        windows.set(windowId, w);
+        if (isPaused(w)) pause(w); else resume(w);
+    }
+    persistRunning();
+    if (windows.size) ensureTicker();
 }
 
-// Restore state on startup
-chrome.storage.local.get('windowStates', (data) => {
-    if (data.windowStates) {
-        const savedStates = data.windowStates;
-        for (const windowId in savedStates) {
-            windowStates[windowId] = savedStates[windowId];
-            windowStates[windowId].intervalId = null;
-            windowStates[windowId].loadingTabId = null;
+// ---------- Window state ----------
 
-            if (windowStates[windowId].running) {
-                // Verify window exists before restarting
-                chrome.windows.get(parseInt(windowId), (win) => {
-                    if (chrome.runtime.lastError || !win) {
-                        delete windowStates[windowId];
-                        saveWindowStates();
-                    } else {
-                        startCountdown(parseInt(windowId));
-                        if ((autoScroll || pauseOnHover) && !activityPaused) startScrollingInActiveTab(parseInt(windowId));
-                    }
-                });
-            }
-        }
-    }
-});
-
-// Clean up closed windows
-chrome.windows.onRemoved.addListener((windowId) => {
-    if (windowStates[windowId]) {
-        clearInterval(windowStates[windowId].intervalId);
-        delete windowStates[windowId];
-        saveWindowStates();
-    }
-});
-
-function getWindowState(windowId) {
-    if (!windowStates[windowId]) {
-        windowStates[windowId] = {
-            intervalId: null,
-            running: false,
-            loadingTabId: null,
-            startGeneration: 0,
-            hoverPaused: false,
-            secondsRemaining: 0
-        };
-    }
-    // Ensure runtime properties exist (in case of restore from storage)
-    if (!windowStates[windowId].hasOwnProperty('intervalId')) {
-        windowStates[windowId].intervalId = null;
-    }
-    // Ensure hoverPaused exists
-    if (!windowStates[windowId].hasOwnProperty('hoverPaused')) {
-        windowStates[windowId].hoverPaused = false;
-    }
-    // Ensure secondsRemaining exists
-    if (!windowStates[windowId].hasOwnProperty('secondsRemaining')) {
-        windowStates[windowId].secondsRemaining = switchInterval / 1000;
-    }
-    return windowStates[windowId];
-}
-
-// Updates the badge text on the extension icon with the remaining seconds
-function updateBadgeText(windowId, text, color) {
-    if (!badgeVisible) return;
-    const colorToUse = color || badgeColor;
-    
-    // Update badge on the active tab of the specific window
-    chrome.tabs.query({active: true, windowId: windowId}, (tabs) => {
-        if (tabs.length > 0) {
-            chrome.action.setBadgeBackgroundColor({ color: colorToUse, tabId: tabs[0].id });
-            chrome.action.setBadgeText({ text: text.toString(), tabId: tabs[0].id });
-        }
-    });
-}
-
-// Starts the countdown timer for the next tab switch
-function startCountdown(windowId, resume = false) {
-    const state = getWindowState(windowId);
-    if (activityPaused || state.loadingTabId !== null || state.hoverPaused) return;
-
-    if (!resume || state.secondsRemaining <= 0) {
-        state.secondsRemaining = switchInterval / 1000;
-    }
-
-    updateBadgeText(windowId, state.secondsRemaining);
-
-    clearInterval(state.intervalId);
-    state.intervalId = setInterval(() => {
-        state.secondsRemaining--;
-        if (state.secondsRemaining <= 0) {
-            clearInterval(state.intervalId);
-            switchTab(windowId);
-        }
-        updateBadgeText(windowId, state.secondsRemaining);
-    }, 1000);
-}
-
-// Switches to the next tab in the cycle
-function switchTab(windowId) {
-    const state = getWindowState(windowId);
-
-    // Query all tabs in the saved window
-    chrome.tabs.query({windowId: windowId}, function(tabs) {
-        if (tabs.length <= 1) {
-            return; // Don't switch if only one tab is open
-        }
-
-        // Find the currently active tab
-        chrome.tabs.query({active: true, windowId: windowId}, function(activeTabs) {
-            if (activeTabs.length === 0) return;
-
-            let currentTabIndex = activeTabs[0].index;
-            // Stop scrolling on the current tab before switching
-            chrome.tabs.sendMessage(activeTabs[0].id, {command: "stopScrolling"}, () => {
-                if (chrome.runtime.lastError) { /* Ignore */ }
-            });
-            // Clear badge from current tab
-            chrome.action.setBadgeText({ text: "", tabId: activeTabs[0].id });
-
-            let nextTabIndex = (currentTabIndex + 1) % tabs.length;
-
-            let nextTabId = tabs[nextTabIndex].id;
-            state.loadingTabId = nextTabId;
-
-            // Switch to the next tab
-            chrome.tabs.update(nextTabId, {active: true, autoDiscardable: false}, (tab) => {
-                if (chrome.runtime.lastError) {
-                    state.loadingTabId = null;
-                    return;
-                }
-                // Handle auto-refresh logic
-                if (autoRefresh) {
-                    chrome.tabs.reload(nextTabId, {bypassCache: true}, () => {
-                        if (chrome.runtime.lastError) {
-                            state.loadingTabId = null;
-                            startCountdown(windowId);
-                        }
-                    });
-                } else {
-                    chrome.tabs.get(nextTabId, (currentTab) => {
-                        if (currentTab.status === 'complete') {
-                            state.loadingTabId = null;
-                            startCountdown(windowId);
-                            if ((autoScroll || pauseOnHover) && !activityPaused) startScrollingInTab(nextTabId);
-                        }
-                    });
-                }
-            });
-        });
-    });
-}
-
-// Helper to initialize timer state (idle check, start countdown)
-function initializeTimerState(windowId, currentGen) {
-    const state = getWindowState(windowId);
-    if (pauseOnActivity) {
-        chrome.idle.queryState(15, (idleState) => {
-            if (currentGen !== state.startGeneration || !state.running) return;
-
-            if (idleState === 'active') {
-                activityPaused = true;
-                chrome.storage.local.set({activityPaused: true});
-                updateBadgeText(windowId, "...", "#ff0000");
-            } else {
-                activityPaused = false;
-                chrome.storage.local.set({activityPaused: false});
-                startCountdown(windowId);
-                if (autoScroll || pauseOnHover) startScrollingInActiveTab(windowId);
-            }
-        });
-    } else {
-        activityPaused = false;
-        chrome.storage.local.set({activityPaused: false});
-        startCountdown(windowId);
-        if (autoScroll || pauseOnHover) startScrollingInActiveTab(windowId);
-    }
-}
-
-// Initializes the tab switching process
-function startTabSwitching(windowId) {
-    const state = getWindowState(windowId);
-    state.startGeneration++;
-    state.running = true;
-    saveWindowStates();
-    initializeTimerState(windowId, state.startGeneration);
-}
-
-// Stops the tab switching process and clears state
-function stopTabSwitching(windowId) {
-    const state = getWindowState(windowId);
-    state.startGeneration++;
-    clearInterval(state.intervalId);
-    state.running = false;
-    state.loadingTabId = null;
-    state.hoverPaused = false;
-    saveWindowStates();
-    
-    // Clear badge from active tab in this window
-    chrome.tabs.query({active: true, windowId: windowId}, (tabs) => {
-        if (tabs.length > 0) {
-            chrome.action.setBadgeText({ text: "", tabId: tabs[0].id });
-        }
-    });
-
-    activityPaused = false;
-    chrome.storage.local.set({activityPaused: false});
-    stopScrollingInAllTabs(windowId);
-}
-
-// Shows the countdown badge
-function showBadge() {
-    badgeVisible = true;
-    chrome.storage.local.set({badgeVisible: true});
-    // Note: We can't easily update text for all windows here without iterating
-    // but the next tick of startCountdown will handle it.
-}
-
-// Hides the countdown badge
-function hideBadge() {
-    badgeVisible = false;
-    chrome.storage.local.set({badgeVisible: false});
-    chrome.action.setBadgeText({ text: "" });
-}
-
-// Updates the switch interval dynamically
-function updateSwitchInterval(newInterval) {
-    switchInterval = newInterval;
-    // Restart all running windows
-    for (const windowId in windowStates) {
-        if (windowStates[windowId].running) {
-            startTabSwitching(parseInt(windowId));
-        }
-    }
-}
-
-// Load the saved interval value when the background script starts
-chrome.storage.local.get('switchInterval', function(data) {
-    if (data.switchInterval) {
-        updateSwitchInterval(parseInt(data.switchInterval, 10) * 1000); // Convert to milliseconds
-    }
-});
-
-
-// Restore state from local storage on startup
-chrome.storage.local.get(['badgeVisible', 'pauseOnActivity', 'autoRefresh', 'activityPaused', 'autoScroll', 'pauseOnHover', 'scrollSpeed', 'scrollToTop', 'scrollDelay'], function(data) {
-    // Note: We do not restore timerRunning state per window on restart as window IDs change
-    badgeVisible = data.hasOwnProperty('badgeVisible') ? data.badgeVisible : true;
-    pauseOnActivity = data.pauseOnActivity || false;
-    autoRefresh = data.hasOwnProperty('autoRefresh') ? data.autoRefresh : true;
-    if (data.activityPaused) activityPaused = data.activityPaused;
-    if (data.hasOwnProperty('autoScroll')) autoScroll = data.autoScroll;
-    if (data.hasOwnProperty('pauseOnHover')) pauseOnHover = data.pauseOnHover;
-    if (data.scrollSpeed) scrollSpeed = data.scrollSpeed;
-    if (data.hasOwnProperty('scrollToTop')) scrollToTop = data.scrollToTop;
-    if (data.hasOwnProperty('scrollDelay')) scrollDelay = data.scrollDelay;
-});
-
-// Listen for messages from the popup script
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-    if (request.command === "updateInterval") {
-        updateSwitchInterval(parseInt(request.interval, 10) * 1000); // Convert to milliseconds
-        chrome.storage.local.set({switchInterval: request.interval});
-    } else if (request.command === "startTimer") {
-        startTabSwitching(request.windowId);
-    } else if (request.command === "stopTimer") {
-        stopTabSwitching(request.windowId);
-    } else if (request.command === "getTimerState") {
-        const state = getWindowState(request.windowId);
-        sendResponse({ running: state.running });
-    }
-    
-    if (request.command === "showBadge") {
-        showBadge();
-    } else if (request.command === "hideBadge") {
-        hideBadge();
-    }
-    
-    if (request.command === "updateBadgeColor") {
-        badgeColor = request.color;
-        chrome.storage.local.set({badgeColor: badgeColor}); // Save the new color
-    }
-    
-    if (request.command === "updatePauseOnActivity") {
-        pauseOnActivity = request.pauseOnActivity;
-        // Check all running windows
-        for (const windowId in windowStates) {
-            const state = windowStates[windowId];
-            if (state.running) {
-                if (pauseOnActivity) {
-                    chrome.idle.queryState(15, (idleState) => {
-                        if (idleState === 'active') {
-                            clearInterval(state.intervalId);
-                            updateBadgeText(parseInt(windowId), "...", "#ff0000");
-                            activityPaused = true;
-                            chrome.storage.local.set({activityPaused: true});
-                        }
-                    });
-                } else if (activityPaused) {
-                    startCountdown(parseInt(windowId), true);
-                    activityPaused = false;
-                    chrome.storage.local.set({activityPaused: false});
-                }
-            }
-        }
-    }
-
-    if (request.command === "updateAutoRefresh") {
-        autoRefresh = request.autoRefresh;
-    }
-
-    if (request.command === "updateAutoScroll") {
-        autoScroll = request.autoScroll;
-        if (!activityPaused) {
-            for (const windowId in windowStates) {
-                if (windowStates[windowId].running) {
-                    if (autoScroll || pauseOnHover) startScrollingInActiveTab(parseInt(windowId), false);
-                    else stopScrollingInActiveTab(parseInt(windowId));
-                }
-            }
-        }
-    }
-
-    if (request.command === "updatePauseOnHover") {
-        pauseOnHover = request.pauseOnHover;
-        // If disabled, ensure we unpause any windows that were hover-paused
-        if (!pauseOnHover) {
-            for (const windowId in windowStates) {
-                const state = windowStates[windowId];
-                if (state.hoverPaused) {
-                    state.hoverPaused = false;
-                    if (state.running && !activityPaused && state.loadingTabId === null) startCountdown(parseInt(windowId), true);
-                }
-            }
-        }
-        if (!activityPaused) {
-            for (const windowId in windowStates) {
-                if (windowStates[windowId].running) {
-                    if (autoScroll || pauseOnHover) startScrollingInActiveTab(parseInt(windowId), false);
-                    else stopScrollingInActiveTab(parseInt(windowId));
-                }
-            }
-        }
-    }
-
-    if (request.command === "updateScrollSpeed") {
-        scrollSpeed = request.speed;
-        if (autoScroll && !activityPaused) {
-            // Update speed for all active tabs in running windows
-            for (const windowId in windowStates) {
-                if (windowStates[windowId].running) {
-                    sendMessageToActiveTab(parseInt(windowId), {command: "updateSpeed", speed: scrollSpeed});
-                }
-            }
-        }
-    }
-
-    if (request.command === "updateScrollToTop") {
-        scrollToTop = request.scrollToTop;
-    }
-
-    if (request.command === "updateScrollDelay") {
-        scrollDelay = request.scrollDelay;
-    }
-
-    if (request.command === "hoverStateChange") {
-        if (sender.tab && sender.tab.active) {
-            const windowId = sender.tab.windowId;
-            const state = getWindowState(windowId);
-            
-            if (!state.running) return;
-
-            state.hoverPaused = request.isHovering;
-
-            if (state.hoverPaused) {
-                clearInterval(state.intervalId);
-                updateBadgeText(windowId, "||", "#ff0000");
-            } else if (state.running && !activityPaused && state.loadingTabId === null) {
-                startCountdown(windowId, true);
-            }
-        }
-    }
-});
-
-// Load saved badge color
-chrome.storage.local.get('badgeColor', function(data) {
-    if (data.badgeColor) {
-        badgeColor = data.badgeColor;
-    }
-});
-
-// Set idle detection interval
-chrome.idle.setDetectionInterval(15);
-
-// Listen for tab updates to resume countdown after a tab finishes loading (for auto-refresh)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    const state = getWindowState(tab.windowId);
-    if (state.loadingTabId !== null && tabId === state.loadingTabId && changeInfo.status === 'complete') {
-        state.loadingTabId = null;
-        startCountdown(tab.windowId);
-        if ((autoScroll || pauseOnHover) && !activityPaused) startScrollingInTab(tabId);
-    } else if (state.running && !activityPaused && (autoScroll || pauseOnHover) && changeInfo.status === 'complete') {
-        // Ensure scrolling starts if the active tab finishes loading (e.g. manual refresh or wake from discard)
-        if (tab.active) {
-            startScrollingInTab(tabId);
-        }
-    }
-});
-
-// Listen for idle state changes to pause/resume switching
-chrome.idle.onStateChanged.addListener((newState) => {
-    chrome.storage.local.get(['pauseOnActivity', 'autoRefresh', 'switchInterval', 'activityPaused', 'badgeColor', 'autoScroll', 'scrollSpeed', 'scrollToTop', 'scrollDelay'], (data) => {
-        if (!data.pauseOnActivity) return;
-
-        // Restore state in case service worker restarted
-        if (data.switchInterval) switchInterval = parseInt(data.switchInterval, 10) * 1000;
-        activityPaused = data.activityPaused;
-        autoRefresh = data.hasOwnProperty('autoRefresh') ? data.autoRefresh : true;
-        autoScroll = data.hasOwnProperty('autoScroll') ? data.autoScroll : false;
-        if (data.hasOwnProperty('pauseOnHover')) pauseOnHover = data.pauseOnHover;
-        if (data.scrollSpeed) scrollSpeed = data.scrollSpeed;
-        if (data.hasOwnProperty('scrollToTop')) scrollToTop = data.scrollToTop;
-        if (data.hasOwnProperty('scrollDelay')) scrollDelay = data.scrollDelay;
-        if (data.badgeColor) badgeColor = data.badgeColor;
-
-        if (newState === 'active') {
-            activityPaused = true;
-            chrome.storage.local.set({activityPaused: true});
-
-            for (const windowId in windowStates) {
-                const state = windowStates[windowId];
-                if (state.running) {
-                    clearInterval(state.intervalId);
-                    stopScrollingInActiveTab(parseInt(windowId));
-                    updateBadgeText(parseInt(windowId), "...", "#ff0000");
-                }
-            }
-        } else if (newState === 'idle' || newState === 'locked') {
-            if (activityPaused) {
-                activityPaused = false;
-                chrome.storage.local.set({activityPaused: false});
-                for (const windowId in windowStates) {
-                    const state = windowStates[windowId];
-                    if (state.running) {
-                        startCountdown(parseInt(windowId), true);
-                        if (autoScroll || pauseOnHover) startScrollingInActiveTab(parseInt(windowId), false);
-                    }
-                }
-            }
-        }
-    });
-});
-
-// Helper to start scrolling in a specific tab
-function startScrollingInTab(tabId, overrideScrollToTop = null) {
-    const message = {
-        command: "startScrolling", 
-        speed: scrollSpeed, 
-        delay: scrollDelay, 
-        scrollToTop: (overrideScrollToTop !== null) ? overrideScrollToTop : scrollToTop,
-        pauseOnHover: pauseOnHover,
-        autoScroll: autoScroll
+function newWindowState(windowId) {
+    return {
+        windowId,
+        deadline: null,       // timestamp of the next switch while counting down
+        remaining: settings.switchInterval * 1000, // ms left while paused
+        waitingTabId: null,   // tab we are waiting on to finish loading
+        waitTimer: null,
+        hoverPaused: false,
+        switchingTo: null,    // tab we activated ourselves, so onActivated can ignore it
+        activeTabId: null,
+        badgeTabId: null
     };
+}
 
-    chrome.tabs.sendMessage(tabId, message, () => {
-        if (chrome.runtime.lastError) { 
-            // Content script might not be ready or injected. Try injecting it.
-            chrome.scripting.executeScript({
-                target: { tabId: tabId },
-                files: ['content_scroll.js']
-            }, () => {
-                if (!chrome.runtime.lastError) {
-                    chrome.tabs.sendMessage(tabId, message);
-                }
+function isPaused(w) {
+    return activityPaused || w.hoverPaused || w.waitingTabId !== null;
+}
+
+function remainingMs(w) {
+    return w.deadline !== null ? Math.max(0, w.deadline - Date.now()) : w.remaining;
+}
+
+function pause(w) {
+    if (w.deadline === null) return;
+    w.remaining = remainingMs(w);
+    w.deadline = null;
+}
+
+function resume(w) {
+    if (w.deadline === null && !isPaused(w)) w.deadline = Date.now() + w.remaining;
+}
+
+function restartCountdown(w) {
+    w.deadline = null;
+    w.remaining = settings.switchInterval * 1000;
+    resume(w);
+    persistRunning();
+}
+
+function persistRunning() {
+    const running = {};
+    for (const [id, w] of windows) running[id] = { deadline: w.deadline, remaining: w.remaining };
+    chrome.storage.session.set({ running });
+}
+
+function persistLoadTimes() {
+    clearTimeout(loadTimesTimer);
+    loadTimesTimer = setTimeout(() => chrome.storage.session.set({ tabLoadedAt }), 1000);
+}
+
+async function startWindow(windowId) {
+    if (windows.has(windowId)) return;
+    const w = newWindowState(windowId);
+    windows.set(windowId, w);
+    const tab = await getActiveTab(windowId);
+    w.activeTabId = tab ? tab.id : null;
+    restartCountdown(w);
+    if (tab && !activityPaused) startScrolling(tab.id, true);
+    ensureTicker();
+    renderBadge(windowId);
+}
+
+// Drops runtime state. Returns false if the window was not running.
+function forgetWindow(windowId) {
+    const w = windows.get(windowId);
+    if (!w) return false;
+    clearTimeout(w.waitTimer);
+    windows.delete(windowId);
+    persistRunning();
+    if (!windows.size) {
+        clearInterval(ticker);
+        ticker = null;
+    }
+    return true;
+}
+
+async function stopWindow(windowId) {
+    if (!forgetWindow(windowId)) return;
+    const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
+    for (const tab of tabs) {
+        clearBadge(tab.id);
+        sendToTab(tab.id, STOP_SCROLLING);
+    }
+}
+
+// ---------- Countdown and switching ----------
+
+function ensureTicker() {
+    if (!ticker) ticker = setInterval(tick, 1000);
+}
+
+// The per-second API calls in here also keep the service worker alive while a timer runs.
+function tick() {
+    const now = Date.now();
+    for (const [windowId, w] of windows) {
+        if (w.deadline !== null && now >= w.deadline) {
+            w.deadline = null;
+            w.remaining = 0;
+            switchTab(windowId, w).catch((err) => {
+                console.warn('Tab switch failed', err);
+                if (windows.get(windowId) === w) restartCountdown(w);
             });
+        } else {
+            renderBadge(windowId);
+        }
+    }
+}
+
+async function switchTab(windowId, w) {
+    const tabs = await chrome.tabs.query({ windowId });
+    if (windows.get(windowId) !== w) return;
+    if (!tabs.length) {
+        restartCountdown(w);
+        return;
+    }
+
+    const currentIndex = tabs.findIndex((t) => t.active);
+    const current = tabs[currentIndex];
+    const next = tabs[(currentIndex + 1) % tabs.length];
+
+    // With a single tab we "switch" to the same tab so its refresh rule still applies.
+    if (!current || next.id !== current.id) {
+        if (current) {
+            sendToTab(current.id, STOP_SCROLLING);
+            clearBadge(current.id);
+        }
+        w.switchingTo = next.id;
+        await chrome.tabs.update(next.id, { active: true, autoDiscardable: false });
+    }
+    w.activeTabId = next.id;
+
+    const tab = await chrome.tabs.get(next.id);
+    if (windows.get(windowId) !== w) return;
+
+    if (shouldRefreshOnSwitch(tab)) {
+        waitForLoad(w, tab.id);
+        await chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => finishWait(w, tab.id));
+    } else if (tab.status !== 'complete') {
+        // Discarded or still-loading tabs: start the countdown once the page is ready.
+        waitForLoad(w, tab.id);
+    } else {
+        tabReady(w, tab.id);
+    }
+}
+
+function shouldRefreshOnSwitch(tab) {
+    const rule = refreshRuleFor(settings, tab.url || tab.pendingUrl);
+    switch (rule.mode) {
+        case 'switch':
+            return true;
+        case 'stale':
+        case 'background':
+            return Date.now() - (tabLoadedAt[tab.id] || 0) >= rule.minutes * 60000;
+        default:
+            return false;
+    }
+}
+
+function waitForLoad(w, tabId) {
+    w.waitingTabId = tabId;
+    pause(w);
+    clearTimeout(w.waitTimer);
+    // A page that never finishes loading must not stall the rotation.
+    w.waitTimer = setTimeout(() => finishWait(w, tabId), LOAD_TIMEOUT_MS);
+    renderBadge(w.windowId);
+}
+
+function finishWait(w, tabId) {
+    if (w.waitingTabId !== tabId || windows.get(w.windowId) !== w) return;
+    clearTimeout(w.waitTimer);
+    w.waitingTabId = null;
+    tabReady(w, tabId);
+}
+
+function tabReady(w, tabId) {
+    restartCountdown(w);
+    if (!activityPaused) startScrolling(tabId, true);
+    renderBadge(w.windowId);
+}
+
+// Reloads inactive tabs whose rule asks for periodic refreshes.
+async function backgroundRefresh() {
+    const now = Date.now();
+    for (const windowId of [...windows.keys()]) {
+        const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
+        for (const tab of tabs) {
+            if (tab.active || tab.status !== 'complete') continue;
+            const rule = refreshRuleFor(settings, tab.url);
+            if (rule.mode !== 'background') continue;
+            if (!(tab.id in tabLoadedAt)) {
+                // Loaded before we started tracking. Count from now rather than reloading everything at once.
+                tabLoadedAt[tab.id] = now;
+                persistLoadTimes();
+            } else if (now - tabLoadedAt[tab.id] >= rule.minutes * 60000) {
+                chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => {});
+            }
+        }
+    }
+}
+
+// ---------- Pausing ----------
+
+async function refreshActivityState() {
+    const state = settings.pauseMode === 'activity' ? await chrome.idle.queryState(IDLE_SECONDS) : 'idle';
+    setActivityPaused(state === 'active');
+}
+
+function setActivityPaused(paused) {
+    if (paused === activityPaused) return;
+    activityPaused = paused;
+    for (const [windowId, w] of windows) {
+        if (paused) {
+            pause(w);
+            if (w.activeTabId !== null) sendToTab(w.activeTabId, STOP_SCROLLING);
+        } else {
+            resume(w);
+            if (w.activeTabId !== null && w.waitingTabId === null) startScrolling(w.activeTabId, false);
+        }
+        renderBadge(windowId);
+    }
+    persistRunning();
+}
+
+function handleHover(isHovering, tab) {
+    if (!tab || !tab.active || settings.pauseMode !== 'hover') return;
+    const w = windows.get(tab.windowId);
+    if (!w) return;
+    w.hoverPaused = !!isHovering;
+    if (w.hoverPaused) pause(w); else resume(w);
+    persistRunning();
+    renderBadge(tab.windowId);
+}
+
+function scrollSignature(s) {
+    return JSON.stringify([s.pauseMode, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
+}
+
+function applySettingsChange(prev) {
+    const scrollChanged = scrollSignature(prev) !== scrollSignature(settings);
+
+    for (const [windowId, w] of windows) {
+        if (prev.pauseMode === 'hover' && settings.pauseMode !== 'hover') w.hoverPaused = false;
+        if (prev.switchInterval !== settings.switchInterval) {
+            restartCountdown(w);
+        } else {
+            resume(w);
+        }
+        if (scrollChanged && w.activeTabId !== null && w.waitingTabId === null && !activityPaused) {
+            startScrolling(w.activeTabId, false);
+        }
+        renderBadge(windowId);
+    }
+    persistRunning();
+    if (prev.pauseMode !== settings.pauseMode) refreshActivityState();
+}
+
+// ---------- Tabs, badge and content script messaging ----------
+
+async function getActiveTab(windowId) {
+    const [tab] = await chrome.tabs.query({ active: true, windowId }).catch(() => []);
+    return tab;
+}
+
+function sendToTab(tabId, message) {
+    chrome.tabs.sendMessage(tabId, message).catch(() => {});
+}
+
+// onArrival applies the page's "scroll to top" option. Resumes and setting changes keep the position.
+async function startScrolling(tabId, onArrival) {
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (!tab) return;
+    const scroll = scrollSettingsFor(settings, tab.url);
+    const pauseOnHover = settings.pauseMode === 'hover';
+    if (!scroll.autoScroll && !pauseOnHover) {
+        sendToTab(tabId, STOP_SCROLLING);
+        return;
+    }
+    const message = {
+        command: 'startScrolling',
+        autoScroll: scroll.autoScroll,
+        speed: scroll.scrollSpeed,
+        delay: scroll.scrollDelay,
+        scrollToTop: onArrival && scroll.scrollToTop,
+        pauseOnHover
+    };
+    chrome.tabs.sendMessage(tabId, message).catch(async () => {
+        // Tabs opened before install or update have no content script yet.
+        try {
+            await chrome.scripting.executeScript({ target: { tabId }, files: ['content_scroll.js'] });
+            await chrome.tabs.sendMessage(tabId, message);
+        } catch (e) {
+            // Restricted pages (chrome://, the web store) cannot be scripted.
         }
     });
 }
 
-// Helper to start scrolling in the currently active tab of the saved window
-function startScrollingInActiveTab(windowId, overrideScrollToTop = null) {
-    if (!windowId) return;
-    chrome.tabs.query({active: true, windowId: windowId}, (tabs) => {
-        if (tabs.length > 0) startScrollingInTab(tabs[0].id, overrideScrollToTop);
+function clearBadge(tabId) {
+    chrome.action.setBadgeText({ text: '', tabId }).catch(() => {});
+}
+
+async function renderBadge(windowId) {
+    const w = windows.get(windowId);
+    if (!w) return;
+    const tab = await getActiveTab(windowId);
+    if (!tab || windows.get(windowId) !== w) return;
+
+    if (w.badgeTabId !== null && (w.badgeTabId !== tab.id || !settings.badgeVisible)) {
+        clearBadge(w.badgeTabId);
+        w.badgeTabId = null;
+    }
+    if (!settings.badgeVisible) return;
+
+    let text;
+    let color = settings.badgeColor;
+    if (activityPaused) {
+        text = '...';
+        color = PAUSE_COLOR;
+    } else if (w.hoverPaused) {
+        text = '||';
+        color = PAUSE_COLOR;
+    } else if (w.waitingTabId !== null) {
+        text = '\u21bb';
+    } else {
+        text = String(Math.ceil(remainingMs(w) / 1000));
+    }
+
+    w.badgeTabId = tab.id;
+    chrome.action.setBadgeBackgroundColor({ color, tabId: tab.id }).catch(() => {});
+    chrome.action.setBadgeText({ text, tabId: tab.id }).catch(() => {});
+}
+
+// ---------- Event listeners (registered synchronously so they wake the worker) ----------
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    ready.then(async () => {
+        // Only extension pages (the popup) may start or stop timers, not content scripts.
+        const fromPopup = !sender.tab;
+        if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
+        else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
+        else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
+        sendResponse({ running: windows.has(msg.windowId) });
     });
-}
+    return true;
+});
 
-// Helper to stop scrolling in the currently active tab
-function stopScrollingInActiveTab(windowId) {
-    sendMessageToActiveTab(windowId, {command: "stopScrolling"});
-}
-
-// Helper to stop scrolling in all tabs of the saved window
-function stopScrollingInAllTabs(windowId) {
-    if (!windowId) return;
-    chrome.tabs.query({windowId: windowId}, (tabs) => {
-        tabs.forEach((tab) => {
-            chrome.tabs.sendMessage(tab.id, {command: "stopScrolling"}, () => {
-                if (chrome.runtime.lastError) { /* Ignore */ }
-            });
-        });
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    ready.then(async () => {
+        const prev = settings;
+        settings = normalizeSettings(await chrome.storage.local.get(null));
+        applySettingsChange(prev);
     });
-}
+});
 
-function sendMessageToActiveTab(windowId, message) {
-    if (!windowId) return;
-    chrome.tabs.query({active: true, windowId: windowId}, (tabs) => {
-        if (tabs.length > 0) {
-            chrome.tabs.sendMessage(tabs[0].id, message, () => {
-                if (chrome.runtime.lastError) { /* Ignore */ }
-            });
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status !== 'complete') return;
+    ready.then(() => {
+        tabLoadedAt[tabId] = Date.now();
+        persistLoadTimes();
+        const w = windows.get(tab.windowId);
+        if (!w) return;
+        if (w.waitingTabId === tabId) finishWait(w, tabId);
+        else if (tab.active && !activityPaused) startScrolling(tabId, false);
+    });
+});
+
+chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+    ready.then(() => {
+        const w = windows.get(windowId);
+        if (!w) return;
+        if (w.switchingTo === tabId) {
+            w.switchingTo = null;
+            return;
+        }
+        // The user picked a tab by hand: give it a full interval and move scrolling over to it.
+        if (w.activeTabId !== null && w.activeTabId !== tabId) sendToTab(w.activeTabId, STOP_SCROLLING);
+        w.activeTabId = tabId;
+        w.hoverPaused = false;
+        if (w.waitingTabId !== null) {
+            clearTimeout(w.waitTimer);
+            w.waitingTabId = null;
+        }
+        restartCountdown(w);
+        if (!activityPaused) startScrolling(tabId, false);
+        renderBadge(windowId);
+    });
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    ready.then(() => {
+        delete tabLoadedAt[tabId];
+        persistLoadTimes();
+        for (const w of windows.values()) {
+            if (w.activeTabId === tabId) w.activeTabId = null;
+            if (w.badgeTabId === tabId) w.badgeTabId = null;
+            if (w.waitingTabId === tabId) {
+                clearTimeout(w.waitTimer);
+                w.waitingTabId = null;
+                restartCountdown(w);
+            }
         }
     });
-}
+});
 
-// Listen for browser startup to handle auto-start
+chrome.windows.onRemoved.addListener((windowId) => {
+    ready.then(() => forgetWindow(windowId));
+});
+
+chrome.idle.onStateChanged.addListener((state) => {
+    ready.then(() => setActivityPaused(settings.pauseMode === 'activity' && state === 'active'));
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === HEARTBEAT_ALARM) ready.then(backgroundRefresh);
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+    // Write normalised settings so pre-2.0 keys are migrated, then drop the old ones.
+    ready.then(async () => {
+        await chrome.storage.local.set(settings);
+        await chrome.storage.local.remove(LEGACY_KEYS);
+    });
+});
+
 chrome.runtime.onStartup.addListener(() => {
-    chrome.storage.local.get('autoStart', (data) => {
-        if (data.autoStart) {
-            chrome.windows.getLastFocused((window) => {
-                if (window) {
-                    startTabSwitching(window.id);
-                }
-            });
-        }
+    ready.then(async () => {
+        if (!settings.autoStart) return;
+        const all = await chrome.windows.getAll({ windowTypes: ['normal'] });
+        for (const win of all) startWindow(win.id);
     });
 });
 
-// Listen for new windows to handle auto-start
-chrome.windows.onCreated.addListener((window) => {
-    chrome.storage.local.get('autoStart', (data) => {
-        if (data.autoStart) {
-            startTabSwitching(window.id);
-        }
+chrome.windows.onCreated.addListener((win) => {
+    ready.then(() => {
+        if (settings.autoStart) startWindow(win.id);
     });
-});
+}, { windowTypes: ['normal'] });

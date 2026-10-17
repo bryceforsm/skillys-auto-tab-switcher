@@ -1,0 +1,135 @@
+// Shared by the service worker (importScripts) and the popup (<script>).
+
+const REFRESH_MODES = {
+    switch: 'Every switch',
+    never: 'Never',
+    stale: 'On switch, if older than',
+    background: 'Periodically, even in background'
+};
+
+const PAUSE_MODES = ['disable', 'activity', 'hover'];
+
+const DEFAULTS = {
+    switchInterval: 30,
+    pauseMode: 'disable',
+    defaultRefresh: { mode: 'switch', minutes: 5 },
+    defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
+    // "host:<host>" or "page:<url>" -> { refresh?: {...}, scroll?: {...} }. A missing section means use the default.
+    pageRules: {},
+    autoStart: false,
+    badgeColor: '#32cd32',
+    badgeVisible: true
+};
+
+// Keys written by earlier versions, migrated by normalizeSettings.
+const LEGACY_KEYS = [
+    'pauseOnActivity', 'pauseOnHover', 'autoRefresh', 'activityPaused', 'windowStates',
+    'refreshRules', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'
+];
+
+function clampInt(value, min, max, fallback) {
+    const n = parseInt(value, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(max, Math.max(min, n));
+}
+
+function normalizeRefresh(rule, fallback) {
+    if (!rule || !Object.hasOwn(REFRESH_MODES, rule.mode)) return fallback;
+    return { mode: rule.mode, minutes: clampInt(rule.minutes, 1, 1440, 5) };
+}
+
+function normalizeScroll(scroll, fallback) {
+    if (!scroll || typeof scroll !== 'object') return fallback;
+    return {
+        autoScroll: scroll.autoScroll === true,
+        scrollToTop: scroll.scrollToTop === true,
+        scrollDelay: clampInt(scroll.scrollDelay, 0, 3600, DEFAULTS.defaultScroll.scrollDelay),
+        scrollSpeed: clampInt(scroll.scrollSpeed, 1, 100, DEFAULTS.defaultScroll.scrollSpeed)
+    };
+}
+
+function normalizeSettings(raw) {
+    const pauseMode = PAUSE_MODES.includes(raw.pauseMode)
+        ? raw.pauseMode
+        : raw.pauseOnActivity ? 'activity' : raw.pauseOnHover ? 'hover' : 'disable';
+
+    const defaultRefresh = raw.defaultRefresh
+        ? normalizeRefresh(raw.defaultRefresh, DEFAULTS.defaultRefresh)
+        : { mode: raw.autoRefresh === false ? 'never' : 'switch', minutes: 5 };
+
+    // Older versions kept the scroll settings as top-level keys with the same names.
+    const defaultScroll = normalizeScroll(raw.defaultScroll || raw, DEFAULTS.defaultScroll);
+
+    const sourceRules = raw.pageRules || Object.fromEntries(
+        Object.entries(raw.refreshRules || {}).map(([key, refresh]) => [key, { refresh }])
+    );
+    const pageRules = {};
+    for (const [key, rule] of Object.entries(sourceRules)) {
+        if (!key.startsWith('host:') && !key.startsWith('page:')) continue;
+        const refresh = normalizeRefresh(rule && rule.refresh, null);
+        const scroll = normalizeScroll(rule && rule.scroll, null);
+        if (!refresh && !scroll) continue;
+        pageRules[key] = {};
+        if (refresh) pageRules[key].refresh = refresh;
+        if (scroll) pageRules[key].scroll = scroll;
+    }
+
+    return {
+        switchInterval: clampInt(raw.switchInterval, 5, 86400, DEFAULTS.switchInterval),
+        pauseMode,
+        defaultRefresh,
+        defaultScroll,
+        pageRules,
+        autoStart: raw.autoStart === true,
+        badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
+        badgeVisible: raw.badgeVisible !== false
+    };
+}
+
+// Rule keys for a URL: "host:<host>" for the whole site, "page:<url without query or hash>" for one page.
+function ruleKeysForUrl(url) {
+    let u;
+    try {
+        u = new URL(url);
+    } catch (e) {
+        return null;
+    }
+    if (!['http:', 'https:', 'file:'].includes(u.protocol)) return null;
+    return {
+        site: u.host ? 'host:' + u.host : null,
+        page: 'page:' + u.protocol + '//' + u.host + u.pathname
+    };
+}
+
+// Each section is resolved on its own: a page rule beats a site rule, which beats the default.
+function ruleSectionFor(settings, url, section) {
+    const keys = ruleKeysForUrl(url);
+    if (!keys) return null;
+    const page = settings.pageRules[keys.page];
+    if (page && page[section]) return page[section];
+    const site = keys.site && settings.pageRules[keys.site];
+    if (site && site[section]) return site[section];
+    return null;
+}
+
+function refreshRuleFor(settings, url) {
+    return ruleSectionFor(settings, url, 'refresh') || settings.defaultRefresh;
+}
+
+function scrollSettingsFor(settings, url) {
+    return ruleSectionFor(settings, url, 'scroll') || settings.defaultScroll;
+}
+
+function describeRefresh(rule) {
+    switch (rule.mode) {
+        case 'stale': return `On switch, if older than ${rule.minutes} min`;
+        case 'background': return `Every ${rule.minutes} min, even in background`;
+        default: return REFRESH_MODES[rule.mode];
+    }
+}
+
+function describeScroll(scroll) {
+    if (!scroll.autoScroll) return 'Off';
+    const delay = scroll.scrollDelay ? `, ${scroll.scrollDelay}s delay` : '';
+    return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}`;
+}

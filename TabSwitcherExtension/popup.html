@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Auto Tab Switcher Settings</title>
     <style>
+        [hidden] {
+            display: none !important;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            width: 380px;
+            /* Chrome caps popups at 800x600, so the layout is wide rather than tall. */
+            width: 700px;
             padding: 15px;
             background-color: #ffffff;
             color: #202124;
@@ -17,10 +22,27 @@
             color: #202124;
         }
         .control-group {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 8px;
+        }
+        .columns {
+            display: grid;
+            /* minmax(0, ...) stops long unbreakable text (URLs) from widening a column. */
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+        .footer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .footer #saveAll {
+            flex: 1;
         }
         label {
             font-size: 14px;
@@ -39,6 +61,7 @@
             border: 1px solid #dadce0;
             border-radius: 4px;
             font-size: 14px;
+            width: 220px;
         }
         input[type="checkbox"] {
             width: 18px;
@@ -96,14 +119,16 @@
         #toggleTimer.running:hover {
             background-color: #b31412;
         }
-        #toggleBadge {
+        .link-button {
             background-color: transparent;
             color: #1a73e8;
             text-decoration: underline;
             padding: 5px;
             font-size: 13px;
+            width: auto;
+            white-space: nowrap;
         }
-        #toggleBadge:hover {
+        .link-button:hover {
             color: #1557b0;
         }
         #status {
@@ -131,7 +156,9 @@
             border: 1px solid #dadce0;
             border-radius: 6px;
             padding: 8px;
-            margin-bottom: 10px;
+            margin: 0 0 10px 0;
+            /* Fieldsets default to min-content width, which nowrap text would stretch. */
+            min-width: 0;
         }
         legend {
             font-size: 14px;
@@ -139,12 +166,33 @@
             font-weight: 500;
             padding: 0 5px;
         }
-        .global-note {
+        .note {
             font-size: 11px;
             color: #5f6368;
             margin-bottom: 10px;
             text-align: center;
             font-style: italic;
+        }
+        #pageLabel {
+            font-size: 12px;
+            color: #1a73e8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 8px;
+        }
+        #effectiveRule {
+            font-size: 11px;
+            color: #5f6368;
+            margin: -2px 0 2px 0;
+            white-space: pre-line;
+        }
+        .rules-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 10px;
         }
         @media (prefers-color-scheme: dark) {
             body {
@@ -154,8 +202,11 @@
             h2, legend {
                 color: #e8eaed;
             }
-            label, .global-note {
+            label, .note, #effectiveRule {
                 color: #9aa0a6;
+            }
+            #pageLabel {
+                color: #8ab4f8;
             }
             input[type="number"], select {
                 background-color: #292a2d;
@@ -173,10 +224,10 @@
             #saveAll:hover {
                 background-color: #3c4043;
             }
-            #toggleBadge {
+            .link-button {
                 color: #8ab4f8;
             }
-            #toggleBadge:hover {
+            .link-button:hover {
                 color: #aecbfa;
             }
         }
@@ -190,6 +241,8 @@
         </div>
         <button id="toggleTimer">Start Timer</button>
     </div>
+    <div class="columns">
+    <div>
     <div class="control-group" title="Set the time in seconds between tab switches.">
         <label for="interval">Interval (secs):</label>
         <input type="number" id="interval" min="5" value="30">
@@ -202,16 +255,23 @@
             <option value="hover">On Hover</option>
         </select>
     </div>
-    <div class="control-group" title="Reload the tab content every time it is switched to.">
-        <label for="autoRefresh">Auto Refresh:</label>
-        <input type="checkbox" id="autoRefresh">
-    </div>
     <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
         <label for="autoStart"><strong>Auto-Start Timer on Browser Launch:</strong></label>
         <input type="checkbox" id="autoStart">
     </div>
     <fieldset>
-        <legend>Auto Scroll Options</legend>
+        <legend>Default Refresh</legend>
+        <div class="control-group" title="How pages without their own refresh rule are refreshed.">
+            <label for="defaultMode">Refresh:</label>
+            <select id="defaultMode"></select>
+        </div>
+        <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
+            <label for="defaultMinutes">Minutes:</label>
+            <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>Default Auto Scroll</legend>
         <div class="control-group" title="Automatically scroll down the page while the timer is running.">
             <label for="autoScroll">Enable Auto Scroll:</label>
             <input type="checkbox" id="autoScroll">
@@ -229,20 +289,70 @@
             <input type="range" id="scrollSpeed" min="1" max="100" value="20">
         </div>
     </fieldset>
-    <div class="control-group" title="Change the color of the countdown badge on the extension icon.">
-        <label for="badgeColor">Badge Color:</label>
-        <input type="color" id="badgeColor">
     </div>
-    <div class="global-note">
-        Note: Settings are global and apply to all windows.
+    <div>
+    <fieldset>
+        <legend>Current Tab</legend>
+        <div id="pageRuleEditor">
+            <div id="pageLabel"></div>
+            <div class="control-group" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
+                <label for="ruleScope">Apply to:</label>
+                <select id="ruleScope">
+                    <option value="site">This site</option>
+                    <option value="page">This page only</option>
+                </select>
+            </div>
+            <div class="control-group" title="How this site or page is refreshed.">
+                <label for="ruleMode">Refresh:</label>
+                <select id="ruleMode"></select>
+            </div>
+            <div id="ruleMinutesWrap" class="control-group" title="Age limit or refresh period for this rule, in minutes.">
+                <label for="ruleMinutes">Minutes:</label>
+                <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
+            </div>
+            <div class="control-group" title="Whether this site or page auto scrolls.">
+                <label for="ruleScrollMode">Auto Scroll:</label>
+                <select id="ruleScrollMode">
+                    <option value="default">Use default</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                </select>
+            </div>
+            <div id="ruleScrollOptions">
+                <div class="control-group" title="Scroll back to the top of this page when switching to it.">
+                    <label for="ruleScrollToTop">Scroll to Top on Switch:</label>
+                    <input type="checkbox" id="ruleScrollToTop">
+                </div>
+                <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
+                    <label for="ruleScrollDelay">Scroll Delay (sec):</label>
+                    <input type="number" id="ruleScrollDelay" min="0" value="5">
+                </div>
+                <div class="control-group" title="How fast this page scrolls.">
+                    <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
+                    <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
+                </div>
+            </div>
+            <div id="effectiveRule"></div>
+        </div>
+        <div id="pageRuleUnavailable" class="note" hidden>Page rules are not available for this tab.</div>
+    </fieldset>
+    <div class="rules-row">
+        <span>Saved rules: <span id="ruleCount">0</span></span>
+        <button id="manageRules" class="link-button" title="View, edit and remove all saved site and page rules in a full tab.">Manage rules</button>
     </div>
-    <div class="control-group">
+    </div>
+    </div>
+    <div class="note">
+        Settings apply to all windows. Page rules apply wherever that page is open.
+    </div>
+    <div class="footer">
         <button id="saveAll">Save Settings</button>
-    </div>
-    <div class="control-group">
-        <button id="toggleBadge">Hide Badge</button>
+        <label for="badgeColor" title="Change the color of the countdown badge on the extension icon.">Badge:</label>
+        <input type="color" id="badgeColor" title="Change the color of the countdown badge on the extension icon.">
+        <button id="toggleBadge" class="link-button">Hide Badge</button>
     </div>
     <div id="status"></div>
+    <script src="shared.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

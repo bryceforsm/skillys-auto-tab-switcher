@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Auto Tab Switcher - Saved Rules</title>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #202124;
+            margin: 0;
+            padding: 24px;
+        }
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            font-weight: 500;
+        }
+        .muted {
+            color: #5f6368;
+        }
+        #defaults {
+            font-size: 13px;
+            margin: 0 0 12px 0;
+        }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        input[type="search"] {
+            flex: 1;
+            max-width: 420px;
+            padding: 6px 8px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #e8eaed;
+            vertical-align: top;
+        }
+        th {
+            font-weight: 500;
+            color: #5f6368;
+        }
+        col.target { width: auto; }
+        col.type { width: 90px; }
+        col.refresh { width: 23%; }
+        col.scroll { width: 23%; }
+        col.actions { width: 120px; }
+        td.target {
+            /* Long URLs wrap instead of forcing a horizontal scrollbar. */
+            overflow-wrap: anywhere;
+        }
+        td.actions {
+            text-align: right;
+            white-space: nowrap;
+        }
+        button {
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #dadce0;
+            background-color: #f1f3f4;
+            color: #3c4043;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e8eaed;
+        }
+        button.primary {
+            background-color: #1a73e8;
+            border-color: #1a73e8;
+            color: white;
+        }
+        button.primary:hover {
+            background-color: #1557b0;
+        }
+        button.danger {
+            color: #d93025;
+        }
+        #empty {
+            font-size: 14px;
+            padding: 24px 0;
+            text-align: center;
+        }
+        dialog {
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 16px;
+            width: 420px;
+            max-width: calc(100vw - 48px);
+        }
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        dialog h2 {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 4px 0;
+        }
+        #editTarget {
+            font-size: 12px;
+            color: #1a73e8;
+            overflow-wrap: anywhere;
+            margin-bottom: 12px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        label {
+            font-size: 14px;
+            color: #5f6368;
+        }
+        select {
+            width: 220px;
+            padding: 4px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        @media (prefers-color-scheme: dark) {
+            body, dialog {
+                background-color: #202124;
+                color: #e8eaed;
+            }
+            header, th, td, dialog {
+                border-color: #3c4043;
+            }
+            .muted, th, label {
+                color: #9aa0a6;
+            }
+            #editTarget {
+                color: #8ab4f8;
+            }
+            input[type="search"], input[type="number"], select {
+                background-color: #292a2d;
+                color: #e8eaed;
+                border-color: #5f6368;
+            }
+            button {
+                background-color: #292a2d;
+                color: #e8eaed;
+                border-color: #5f6368;
+            }
+            button:hover {
+                background-color: #3c4043;
+            }
+            button.primary {
+                background-color: #8ab4f8;
+                border-color: #8ab4f8;
+                color: #202124;
+            }
+            button.danger {
+                color: #f28b82;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header>
+            <img src="icons/icon48.png" alt="" width="32" height="32">
+            <h1>Auto Tab Switcher - Saved Rules</h1>
+        </header>
+        <p id="defaults" class="muted"></p>
+        <div class="toolbar">
+            <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
+            <span id="count" class="muted"></span>
+        </div>
+        <table id="table">
+            <colgroup>
+                <col class="target"><col class="type"><col class="refresh"><col class="scroll"><col class="actions">
+            </colgroup>
+            <thead>
+                <tr><th>Applies to</th><th>Type</th><th>Refresh</th><th>Auto scroll</th><th></th></tr>
+            </thead>
+            <tbody id="rules"></tbody>
+        </table>
+        <p id="empty" class="muted" hidden>No saved rules yet. Open the extension popup on a page to add one.</p>
+    </main>
+
+    <dialog id="editor">
+        <form id="editorForm" method="dialog">
+            <h2>Edit rule</h2>
+            <div id="editTarget"></div>
+            <div class="control-group">
+                <label for="editRefresh">Refresh:</label>
+                <select id="editRefresh">
+                    <option value="default">Use default</option>
+                </select>
+            </div>
+            <div id="editMinutesWrap" class="control-group">
+                <label for="editMinutes">Minutes:</label>
+                <input type="number" id="editMinutes" min="1" max="1440" value="5">
+            </div>
+            <div class="control-group">
+                <label for="editScroll">Auto Scroll:</label>
+                <select id="editScroll">
+                    <option value="default">Use default</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                </select>
+            </div>
+            <div id="editScrollOptions">
+                <div class="control-group">
+                    <label for="editToTop">Scroll to Top on Switch:</label>
+                    <input type="checkbox" id="editToTop">
+                </div>
+                <div class="control-group">
+                    <label for="editDelay">Scroll Delay (sec):</label>
+                    <input type="number" id="editDelay" min="0" value="5">
+                </div>
+                <div class="control-group">
+                    <label for="editSpeed">Scroll Speed: <span id="editSpeedDisplay">20</span></label>
+                    <input type="range" id="editSpeed" min="1" max="100" value="20">
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button type="button" id="cancelEdit">Cancel</button>
+                <button type="submit" class="primary">Save rule</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="shared.js"></script>
+    <script src="rules.js"></script>
+</body>
+</html>
