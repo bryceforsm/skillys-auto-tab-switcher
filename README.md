@@ -7,7 +7,7 @@ This extension automatically switches between your open tabs at an interval you 
 **Why another tab rotator?** There are plenty of auto tab rotators on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
 <p align="center">
-  <img src="Misc/screenshot.png" alt="Screenshot">
+  <img src="Screenshots/readme/screenshot.png" alt="Popup in the light and dark themes">
 </p>
 
 ## Features
@@ -21,6 +21,25 @@ This extension automatically switches between your open tabs at an interval you 
 - **Customizable Timing:** Set how many seconds each tab is shown, with longer or shorter times for individual sites or pages.
 - **Visual Countdown:** Shows a countdown badge on the extension icon.
 - **Customizable Badge:** Change the color of the badge or hide it completely.
+
+## Screenshots
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="Screenshots/readme/popup-light.png" alt="Popup with a page rule, light theme"><br><sub>Popup with a page rule, running</sub></td>
+    <td align="center"><img src="Screenshots/readme/popup-dark.png" alt="Popup with a page rule, dark theme"><br><sub>Same popup in the dark theme</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="Screenshots/webstore/rules-light.png" alt="More Settings and Rules page"><br>
+  <sub>More Settings and Rules</sub>
+</p>
+
+<p align="center">
+  <img src="Screenshots/webstore/rules-edit-dark.png" alt="Editing a rule in the dark theme"><br>
+  <sub>Editing a rule, dark theme</sub>
+</p>
 
 ## Usage
 
