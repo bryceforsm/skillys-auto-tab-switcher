@@ -48,9 +48,13 @@
             gap: 10px;
         }
         .basics .control-group select {
-            flex: 1;
+            flex: none;
             min-width: 0;
-            width: auto;
+            width: 115px;
+        }
+        /* Keep the label beside the dropdown and pin both to the right edge of the window. */
+        .basics .control-group:last-child {
+            justify-content: flex-end;
         }
         .summary-row {
             display: flex;
