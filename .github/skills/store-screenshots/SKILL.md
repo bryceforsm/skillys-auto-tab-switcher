@@ -17,7 +17,7 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 
    | File | Use |
    |---|---|
-   | `Misc/screenshot.png` | README image (popup, light and dark diagonal split, rounded corners on a transparent background) |
+   | `Misc/screenshot.png` | README image (popup, light and dark diagonal split, square corners) |
    | `Misc/screenshot640x400.jpeg` | Small store screenshot |
    | `Screenshot/popup-light.png`, `popup-dark.png` | 1280x800 store screenshots |
    | `Screenshot/rules-light.png`, `rules-edit-dark.png` | 1280x800 store screenshots |

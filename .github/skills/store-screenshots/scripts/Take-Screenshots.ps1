@@ -96,26 +96,6 @@ try {
     $light.Dispose()
     $dark.Dispose()
 
-    # Rounded corners on a transparent background, matching the 12px radius of the framed store shots.
-    $radius = 12
-    $d = $radius * 2
-    $corners = New-Object Drawing.Drawing2D.GraphicsPath
-    $corners.AddArc(0, 0, $d, $d, 180, 90)
-    $corners.AddArc($popupWidth - $d, 0, $d, $d, 270, 90)
-    $corners.AddArc($popupWidth - $d, $popupHeight - $d, $d, $d, 0, 90)
-    $corners.AddArc(0, $popupHeight - $d, $d, $d, 90, 90)
-    $corners.CloseFigure()
-    $rounded = New-Object Drawing.Bitmap $popupWidth, $popupHeight, ([Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $g = [Drawing.Graphics]::FromImage($rounded)
-    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $brush = New-Object Drawing.TextureBrush $split
-    $g.FillPath($brush, $corners)
-    $brush.Dispose()
-    $g.Dispose()
-    $corners.Dispose()
-    $split.Dispose()
-    $split = $rounded
-
     $misc = Join-Path $repo 'Misc'
     $split.Save((Join-Path $misc 'screenshot.png'), [Drawing.Imaging.ImageFormat]::Png)
 

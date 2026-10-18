@@ -40,7 +40,7 @@
             style.textContent = `
                 html { height: 100%; display: flex; align-items: center; justify-content: center;
                        background: ${dark ? 'linear-gradient(135deg, #0f1115, #2a2d34)' : 'linear-gradient(135deg, #dfe7f5, #f5f7fb)'} !important; }
-                body { margin: 0 !important; border-radius: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, ${dark ? 0.6 : 0.25}); }`;
+                body { margin: 0 !important; box-shadow: 0 12px 40px rgba(0, 0, 0, ${dark ? 0.6 : 0.25}); }`;
             document.head.append(style);
         }
         if (params.get('edit')) setTimeout(() => openEditor(params.get('edit')), 300);
