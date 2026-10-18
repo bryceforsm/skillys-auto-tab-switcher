@@ -6,6 +6,7 @@ const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart
 let settings = normalizeSettings({});
 let windowId = null;
 let editingKey = null;
+let duplicateOf = null; // key of the rule being copied, so saving it unchanged is caught
 let sortColumn = 'target';
 let sortDirection = 1;
 
@@ -162,6 +163,7 @@ function targetCell(key) {
     const td = cell('', 'target');
     const url = ruleUrl(key, settings.pageRules[key]);
     const text = displayTarget(key, settings.pageRules[key]);
+    td.title = text;
     // Only link URLs the extension itself would produce, never arbitrary schemes from storage.
     if (!ruleKeysForUrl(url)) {
         td.textContent = text;
@@ -171,7 +173,7 @@ function targetCell(key) {
     a.href = url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.title = 'Open in a new tab';
+    a.title = `${url}\nClick to open in a new tab`;
     a.textContent = text;
     // Extension pages cannot open file:// links directly, but chrome.tabs.create can.
     a.addEventListener('click', (event) => {
@@ -244,6 +246,8 @@ function render() {
         actions.append(
             button('Edit', '', () => openEditor(key)),
             ' ',
+            button('Duplicate', '', () => openEditor(key, true)),
+            ' ',
             button('Remove', 'danger', () => removeRule(key))
         );
         tr.append(
@@ -261,11 +265,13 @@ function render() {
 
 // ---------- Editing ----------
 
-function openEditor(key) {
+// With duplicate, the rule's settings prefill a new rule instead of editing it.
+function openEditor(key, duplicate = false) {
     const rule = key ? settings.pageRules[key] : {};
     if (!rule) return;
-    editingKey = key;
-    $('editTitle').textContent = key ? 'Edit Rule' : 'Add Rule';
+    editingKey = duplicate ? null : key;
+    duplicateOf = duplicate ? key : null;
+    $('editTitle').textContent = duplicate ? 'Duplicate Rule' : key ? 'Edit Rule' : 'Add Rule';
     $('editType').value = key && key.startsWith('page:') ? 'page' : 'host';
     $('editUrl').value = key ? displayTarget(key, rule) : '';
     validateUrl();
@@ -285,6 +291,7 @@ function openEditor(key) {
 
     updateEditorVisibility();
     $('editor').showModal();
+    if (duplicate) $('editUrl').select();
 }
 
 // Returns { key } for a valid entry, or { error } explaining what is wrong.
@@ -322,6 +329,10 @@ function validateUrl() {
     const isSite = $('editType').value === 'host';
     $('editUrlLabel').textContent = isSite ? 'Site:' : 'Page URL:';
     const result = parseTarget($('editUrl').value, isSite);
+    if (result.key && result.key === duplicateOf) {
+        result.error = 'Change the site or page URL. This is the rule being copied.';
+        delete result.key;
+    }
     const { key, error, warning, scheme } = result;
     $('editUrl').setCustomValidity(error || '');
     // An empty box on a new rule is not a mistake yet, so show the hint without the error color.

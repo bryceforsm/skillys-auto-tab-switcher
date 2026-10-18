@@ -164,12 +164,14 @@
         col.target { width: auto; }
         col.type { width: 90px; }
         col.display { width: 100px; }
-        col.refresh { width: 20%; }
-        col.scroll { width: 20%; }
-        col.actions { width: 160px; }
+        col.refresh { width: 18%; }
+        col.scroll { width: 18%; }
+        col.actions { width: 240px; }
         td.target {
-            /* Long URLs wrap instead of forcing a horizontal scrollbar. */
-            overflow-wrap: anywhere;
+            /* Long URLs are cut off with an ellipsis. Hovering shows the full address. */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         td.target a {
             color: #1a73e8;
