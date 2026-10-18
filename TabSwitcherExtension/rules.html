@@ -20,6 +20,7 @@
         }
         header {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid #e0e0e0;
@@ -30,6 +31,19 @@
             font-size: 20px;
             margin: 0;
             font-weight: 500;
+        }
+        #timerState {
+            margin-left: auto;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            background-color: #f1f3f4;
+            color: #5f6368;
+        }
+        #timerState.running {
+            background-color: #e6f4ea;
+            color: #137333;
         }
         .muted {
             color: #5f6368;
@@ -305,6 +319,14 @@
             .muted, th, label {
                 color: #9aa0a6;
             }
+            #timerState {
+                background-color: #292a2d;
+                color: #9aa0a6;
+            }
+            #timerState.running {
+                background-color: rgba(129, 201, 149, 0.16);
+                color: #81c995;
+            }
             #editTarget {
                 color: #8ab4f8;
             }
@@ -351,6 +373,7 @@
         <header>
             <img src="icons/icon48.png" alt="" width="32" height="32">
             <h1>Skilly's Auto Tab Switcher - Settings and Rules</h1>
+            <span id="timerState" hidden></span>
         </header>
         <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
         <h2 class="section">Settings</h2>

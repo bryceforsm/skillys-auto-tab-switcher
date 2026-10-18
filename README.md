@@ -36,7 +36,7 @@ This extension automatically switches between your open tabs at an interval you 
     - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop.
 
 2.  **More Settings and Rules:**
-    - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. Changes on this page save as soon as you make them.
+    - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
     - **Timer:**
         - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
         - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).

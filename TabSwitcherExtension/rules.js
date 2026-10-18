@@ -4,6 +4,7 @@ const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
+let windowId = null;
 let editingKey = null;
 let sortColumn = 'target';
 let sortDirection = 1;
@@ -48,11 +49,22 @@ async function init() {
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
 
+    windowId = (await chrome.windows.getCurrent()).id;
     // Keep the table current if the popup saves while this page is open.
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') load();
+        else if (area === 'session' && changes.running) showTimerState();
     });
     await load();
+    showTimerState();
+}
+
+async function showTimerState() {
+    const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId });
+    const running = !!response?.running;
+    $('timerState').textContent = running ? 'Timer running in this window' : 'Timer stopped in this window';
+    $('timerState').classList.toggle('running', running);
+    $('timerState').hidden = false;
 }
 
 async function load() {
