@@ -149,25 +149,23 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
-            table-layout: fixed;
         }
         th, td {
             text-align: left;
             padding: 8px;
             border-bottom: 1px solid #e8eaed;
             vertical-align: top;
+            white-space: nowrap;
         }
         th {
             font-weight: 500;
             color: #5f6368;
+            white-space: nowrap;
         }
-        col.target { width: auto; }
-        col.type { width: 90px; }
-        col.display { width: 100px; }
-        col.refresh { width: 18%; }
-        col.scroll { width: 18%; }
-        col.actions { width: 240px; }
         td.target {
+            /* Fills the leftover width, other columns shrink to their content. */
+            width: 100%;
+            max-width: 0;
             /* Long URLs are cut off with an ellipsis. Hovering shows the full address. */
             white-space: nowrap;
             overflow: hidden;
@@ -494,9 +492,6 @@
             <button type="button" id="addRule" class="primary">Add Rule</button>
         </div>
         <table id="table">
-            <colgroup>
-                <col class="target"><col class="type"><col class="display"><col class="refresh"><col class="scroll"><col class="actions">
-            </colgroup>
             <thead>
                 <tr>
                     <th><button type="button" class="sort" data-sort="target">Applies To</button></th>

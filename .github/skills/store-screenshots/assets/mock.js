@@ -37,7 +37,7 @@
         },
         windows: { getCurrent: async () => ({ id: 1 }) },
         tabs: { query: async () => [{ id: 1, url: 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { sendMessage: async () => ({ running: !outOfBox }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
+        runtime: { getManifest: () => ({ version: '2.1.1' }), sendMessage: async () => ({ running: !outOfBox }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
