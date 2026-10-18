@@ -21,6 +21,7 @@ async function init() {
         chrome.storage.local.get(null)
     ]);
     currentWindowId = win.id;
+    chrome.runtime.connect({ name: 'popup' }).postMessage({ windowId: currentWindowId });
     defaults = normalizeSettings(stored);
 
     rules = structuredClone(defaults.pageRules);
@@ -78,9 +79,6 @@ function setupPageEditor(tab) {
         $('pageRuleUnavailable').hidden = false;
         return;
     }
-    // Edit a rule saved under the www or non-www form rather than creating a second one.
-    if (!rules[pageKeys.site] && rules[pageKeys.siteTwin]) pageKeys.site = pageKeys.siteTwin;
-    if (!rules[pageKeys.page] && rules[pageKeys.pageTwin]) pageKeys.page = pageKeys.pageTwin;
     // Pages without a rule start collapsed to a one-line summary.
     customizing = !!(rules[pageKeys.page] || (pageKeys.site && rules[pageKeys.site]));
     pageUrl = tab.url;
@@ -136,7 +134,13 @@ function onRuleEdit() {
             scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20)
         };
     }
-    if (rule.refresh || rule.scroll || rule.display) rules[key] = rule; else delete rules[key];
+    if (rule.refresh || rule.scroll || rule.display) {
+        // Remembered so the rules page can open the site the way it was visited.
+        if (key.startsWith('host:')) rule.scheme = new URL(pageUrl).protocol.slice(0, -1);
+        rules[key] = rule;
+    } else {
+        delete rules[key];
+    }
     updateVisibility();
     renderRuleList();
     checkUnsavedChanges();

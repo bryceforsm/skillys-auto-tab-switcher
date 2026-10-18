@@ -17,8 +17,8 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 ## Rules model
 
 - Keys are `host:<host incl. port>` for a whole site and `page:<protocol//host+path>` for a page (no query or hash).
-- Each rule has optional sections: `refresh`, `scroll` and `display` (seconds on screen). A missing section means "use default".
-- Each section is resolved on its own: page rule, then site rule, then the global default (`ruleSectionFor()` in `shared.js`). `www.` and the bare domain are treated as the same site. Don't mention that in the UI or docs.
+- Each rule has optional sections: `refresh`, `scroll` and `display` (seconds on screen). A missing section means "use default". Site rules also keep `scheme` (`http` or `https`), only for opening the site from the rules page.
+- Each section is resolved on its own: page rule, then site rule, then the global default (`ruleSectionFor()` in `shared.js`). Keys never keep a leading `www.` or, for web pages, a trailing slash (`normalizeKey()` in `shared.js`), so both forms of an address match.
 - In the UI, `switchInterval` is labelled **Show Each Tab For** and `display` is labelled **Show For**.
 
 ## Constraints

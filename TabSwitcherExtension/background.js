@@ -12,6 +12,7 @@ let tabLoadedAt = {}; // tabId -> timestamp of the last completed load
 let loadTimesTimer = null;
 let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
+const popupWindows = new Set(); // windows with the popup open
 
 const ready = init().catch((err) => console.error("Skilly's Auto Tab Switcher failed to initialise", err));
 
@@ -70,8 +71,12 @@ function newWindowState(windowId) {
     };
 }
 
+function popupPaused(w) {
+    return settings.pauseMode === 'hover' && popupWindows.has(w.windowId);
+}
+
 function isPaused(w) {
-    return activityPaused || w.hoverPaused || w.waitingTabId !== null;
+    return activityPaused || w.hoverPaused || popupPaused(w) || w.waitingTabId !== null;
 }
 
 function remainingMs(w) {
@@ -311,9 +316,13 @@ function handleHover(isHovering, tab) {
     const w = windows.get(tab.windowId);
     if (!w) return;
     w.hoverPaused = !!isHovering;
-    if (w.hoverPaused) pause(w); else resume(w);
+    updatePause(w);
+}
+
+function updatePause(w) {
+    if (isPaused(w)) pause(w); else resume(w);
     persistRunning();
-    renderBadge(tab.windowId);
+    renderBadge(w.windowId);
 }
 
 function scrollSignature(s) {
@@ -327,6 +336,8 @@ function applySettingsChange(prev) {
         if (prev.pauseMode === 'hover' && settings.pauseMode !== 'hover') w.hoverPaused = false;
         if (displaySecondsFor(prev, w.activeUrl) !== displaySecondsFor(settings, w.activeUrl)) {
             restartCountdown(w);
+        } else if (isPaused(w)) {
+            pause(w);
         } else {
             resume(w);
         }
@@ -400,7 +411,7 @@ async function renderBadge(windowId) {
     if (activityPaused) {
         text = '...';
         color = PAUSE_COLOR;
-    } else if (w.hoverPaused) {
+    } else if (w.hoverPaused || popupPaused(w)) {
         text = '||';
         color = PAUSE_COLOR;
     } else if (w.waitingTabId !== null) {
@@ -426,6 +437,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ running: windows.has(msg.windowId) });
     });
     return true;
+});
+
+// The popup holds a port open while it is shown, so On hover also covers editing in the popup.
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'popup' || port.sender.tab) return;
+    let windowId = null;
+    const update = () => {
+        const w = windows.get(windowId);
+        if (w) updatePause(w);
+    };
+    port.onMessage.addListener((msg) => {
+        windowId = msg.windowId;
+        ready.then(() => {
+            popupWindows.add(windowId);
+            update();
+        });
+    });
+    port.onDisconnect.addListener(() => {
+        ready.then(() => {
+            popupWindows.delete(windowId);
+            update();
+        });
+    });
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
