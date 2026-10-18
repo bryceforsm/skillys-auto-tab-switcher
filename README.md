@@ -46,7 +46,7 @@ This extension automatically switches between your open tabs at an interval you 
 1.  **Popup:**
     - Click the extension icon to open the popup. Changes save as soon as you make them.
     - Set **Show Each Tab For** in seconds (minimum 5).
-    - Select **Pause Timer** mode: Disable, On activity, or On hover. On hover also pauses while this popup is open.
+    - Select **Pause Timer** mode: Disable, On activity, or On hover. On hover also pauses while this popup is open. On hover can't detect the pointer on pages where Chrome blocks extensions, such as `chrome://` pages, the Chrome Web Store and the new tab page. Use On activity there.
     - **Current Tab** shows the site or page open in the active tab and the settings in effect for it, each marked **page rule**, **site rule** or **default**. Next to the address, **Page rule** and **Site rule** light up when this page or its whole site has a rule. Click **Reset** on either one to remove that rule and go back to the defaults (click **Undo** if you change your mind). Click **Customize** to give it its own rule (pages that already have a rule open the editor straight away):
         - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
