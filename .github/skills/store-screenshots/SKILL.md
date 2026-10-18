@@ -17,9 +17,10 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 
    | File | Use |
    |---|---|
-   | `Misc/screenshot.png` | README image (popup, light and dark diagonal split, square corners) |
-   | `Misc/screenshot640x400.jpeg` | Small store screenshot |
+| `Misc/screenshot.png` | README image (popup with out-of-box settings, light and dark diagonal split, square corners) |
+| `Misc/screenshot640x400.jpeg` | Small store screenshot (same out-of-box image) |
    | `Screenshot/popup-light.png`, `popup-dark.png` | 1280x800 store screenshots |
+| `Screenshot/popup-defaults.png` | 1280x800, out-of-box settings with no rules and the timer stopped |
    | `Screenshot/rules-light.png`, `rules-edit-dark.png` | 1280x800 store screenshots |
 
 3. If text is cut off, fix the UI (shorter label or wider control), then run the script again.
@@ -27,7 +28,7 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 ## Changing what is shown
 
 - Settings, rules, the current tab URL and the theme come from [assets/mock.js](./assets/mock.js). Edit `store` there.
-- Query parameters understood by the mock: `theme=light|dark`, `frame=1` (centre the popup on a 1280x800 backdrop), `edit=<rule key>` (open the Edit Rule dialog), `measure=1` (magenta backdrop used to measure popup height).
+- Query parameters understood by the mock: `theme=light|dark`, `frame=1` (centre the popup on a 1280x800 backdrop), `defaults=1` (out-of-box `DEFAULTS` from `shared.js`, no rules, timer stopped), `edit=<rule key>` (open the Edit Rule dialog), `measure=1` (magenta backdrop used to measure popup height).
 - To add a shot, add a `Save-Shot` line in the script.
 
 ## Things that don't work (already tried)

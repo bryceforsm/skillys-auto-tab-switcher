@@ -22,14 +22,22 @@
         theme: params.get('theme') || 'light'
     };
 
+    const outOfBox = params.get('defaults') === '1';
+    // theme.js reads storage before shared.js (and DEFAULTS) has loaded, and only needs the theme.
+    const settings = () => {
+        if (!outOfBox) return structuredClone(store);
+        if (typeof DEFAULTS === 'undefined') return { theme: store.theme };
+        return { ...structuredClone(DEFAULTS), theme: store.theme };
+    };
+
     window.chrome = {
         storage: {
-            local: { get: async () => structuredClone(store), set: async () => {}, remove: async () => {}, clear: async () => {} },
+            local: { get: async () => settings(), set: async () => {}, remove: async () => {}, clear: async () => {} },
             onChanged: { addListener() {} }
         },
         windows: { getCurrent: async () => ({ id: 1 }) },
         tabs: { query: async () => [{ id: 1, url: 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { sendMessage: async () => ({ running: true }), openOptionsPage() {} }
+        runtime: { sendMessage: async () => ({ running: !outOfBox }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {

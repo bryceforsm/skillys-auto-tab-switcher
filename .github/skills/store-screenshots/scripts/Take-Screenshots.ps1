@@ -5,10 +5,11 @@
 .DESCRIPTION
     Copies TabSwitcherExtension to a temp folder, injects assets/mock.js (fake chrome.* APIs with sample
     settings), renders each page in headless Edge or Chrome, then writes:
-      Misc/screenshot.png              Popup, light/dark diagonal split, used by the README
+      Misc/screenshot.png              Popup with out-of-box settings, light/dark diagonal split, used by the README
       Misc/screenshot640x400.jpeg      Same image letterboxed to 640x400 for the store
       Screenshot/popup-light.png       1280x800 store screenshots
       Screenshot/popup-dark.png
+      Screenshot/popup-defaults.png    Out-of-box settings, no rules, timer stopped
       Screenshot/rules-light.png
       Screenshot/rules-edit-dark.png
     Nothing in TabSwitcherExtension is modified.
@@ -57,7 +58,7 @@ try {
 
     # The popup's height depends on which rows are visible, so measure it instead of hard-coding it.
     $popupWidth = 730
-    $probe = [Drawing.Bitmap]::FromFile((Save-Shot 'popup.html?theme=light&measure=1' 'measure.png' $popupWidth 1000))
+    $probe = [Drawing.Bitmap]::FromFile((Save-Shot 'popup.html?theme=light&defaults=1&measure=1' 'measure.png' $popupWidth 1000))
     $popupHeight = $probe.Height
     while ($popupHeight -gt 1) {
         $pixel = $probe.GetPixel([int]($popupWidth / 2), $popupHeight - 1)
@@ -66,12 +67,13 @@ try {
     }
     $probe.Dispose()
 
-    $rawLight = Save-Shot 'popup.html?theme=light' 'raw-light.png' $popupWidth $popupHeight
-    $rawDark = Save-Shot 'popup.html?theme=dark' 'raw-dark.png' $popupWidth $popupHeight
+    $rawLight = Save-Shot 'popup.html?theme=light&defaults=1' 'raw-light.png' $popupWidth $popupHeight
+    $rawDark = Save-Shot 'popup.html?theme=dark&defaults=1' 'raw-dark.png' $popupWidth $popupHeight
     $editKey = [uri]::EscapeDataString('page:https://github.com/bryceforsm/skillys-auto-tab-switcher')
     $store = @(
         Save-Shot 'popup.html?theme=light&frame=1' 'popup-light.png'
         Save-Shot 'popup.html?theme=dark&frame=1' 'popup-dark.png'
+        Save-Shot 'popup.html?theme=light&frame=1&defaults=1' 'popup-defaults.png'
         Save-Shot 'rules.html?theme=light' 'rules-light.png'
         Save-Shot "rules.html?theme=dark&edit=$editKey" 'rules-edit-dark.png'
     )
