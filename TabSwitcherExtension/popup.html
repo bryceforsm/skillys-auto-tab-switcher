@@ -28,12 +28,21 @@
             justify-content: space-between;
             gap: 8px;
         }
-        .columns {
+        .basics, .rule-columns {
             display: grid;
             /* minmax(0, ...) stops long unbreakable text (URLs) from widening a column. */
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 16px;
+            column-gap: 16px;
             align-items: start;
+        }
+        .basics {
+            margin-bottom: 4px;
+        }
+        .summary-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 8px;
         }
         .footer {
             display: flex;
@@ -63,18 +72,29 @@
             font-size: 14px;
             width: 220px;
         }
+        .inline-inputs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 220px;
+        }
+        .inline-inputs select {
+            flex: 1;
+            min-width: 0;
+            width: auto;
+        }
+        .inline-inputs span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .inline-inputs input[type="number"] {
+            width: 50px;
+        }
         input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
-        }
-        input[type="color"] {
-            border: none;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            background: none;
-            padding: 0;
         }
         button {
             width: 100%;
@@ -95,12 +115,23 @@
             background-color: #e8eaed;
         }
         #saveAll.unsaved {
-            background-color: #1a73e8;
+            background-color: #e37400;
             color: white;
-            border: 1px solid #1a73e8;
+            border: 1px solid #e37400;
+            font-weight: 600;
+            animation: unsaved-pulse 1.6s ease-in-out infinite;
         }
         #saveAll.unsaved:hover {
-            background-color: #1557b0;
+            background-color: #c26401;
+        }
+        @keyframes unsaved-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(227, 116, 0, 0.7); }
+            50% { box-shadow: 0 0 0 4px rgba(227, 116, 0, 0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #saveAll.unsaved {
+                animation: none;
+            }
         }
         #toggleTimer {
             background-color: #1e8e3e;
@@ -136,6 +167,10 @@
             font-size: 12px;
             color: #188038;
             text-align: center;
+        }
+        #status.warning {
+            color: #b06000;
+            font-weight: 600;
         }
         .header-container {
             display: flex;
@@ -184,7 +219,6 @@
         #effectiveRule {
             font-size: 11px;
             color: #5f6368;
-            margin: -2px 0 2px 0;
             white-space: pre-line;
         }
         .rules-row {
@@ -225,21 +259,23 @@
             #saveAll:hover {
                 background-color: #3c4043;
             }
+            #saveAll.unsaved {
+                background-color: #fbbc04;
+                color: #202124;
+                border-color: #fbbc04;
+            }
+            #saveAll.unsaved:hover {
+                background-color: #fdd663;
+            }
+            #status.warning {
+                color: #fdd663;
+            }
             .link-button {
                 color: #8ab4f8;
             }
             .link-button:hover {
                 color: #aecbfa;
             }
-        }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        #theme {
-            width: auto;
-            font-size: 13px;
         }
     </style>
     <script src="theme.js"></script>
@@ -250,95 +286,64 @@
             <img src="icons/icon128.png" alt="Logo" width="32" height="32">
             <h2>Skilly's Auto Tab Switcher</h2>
         </div>
-        <div class="header-actions">
-            <label for="theme" title="Color theme for the extension pages. System follows your OS setting.">Theme:</label>
-            <select id="theme" title="Color theme for the extension pages. System follows your OS setting.">
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-            </select>
-            <button id="toggleTimer">Start Timer</button>
-        </div>
+        <button id="toggleTimer">Start Timer</button>
     </div>
-    <div class="columns">
-    <div>
-    <div class="control-group" title="Set the time in seconds between tab switches.">
-        <label for="interval">Interval (secs):</label>
+    <div class="basics">
+    <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
+        <label for="interval">Show Each Tab For (sec):</label>
         <input type="number" id="interval" min="5" value="30">
     </div>
-    <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On Activity (pause when mouse/keyboard used), or On Hover (pause when mouse is over the page).">
+    <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page).">
         <label for="pauseMode">Pause Timer:</label>
         <select id="pauseMode">
             <option value="disable">Disable</option>
-            <option value="activity">On Activity</option>
-            <option value="hover">On Hover</option>
+            <option value="activity">On activity</option>
+            <option value="hover">On hover</option>
         </select>
     </div>
-    <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
-        <label for="autoStart"><strong>Auto-Start Timer on Browser Launch:</strong></label>
-        <input type="checkbox" id="autoStart">
     </div>
-    <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
-        <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
-        <input type="checkbox" id="fullscreenOnStart">
-    </div>
-    <fieldset>
-        <legend>Default Refresh</legend>
-        <div class="control-group" title="How pages without their own refresh rule are refreshed.">
-            <label for="defaultMode">Refresh:</label>
-            <select id="defaultMode"></select>
-        </div>
-        <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
-            <label for="defaultMinutes">Minutes:</label>
-            <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
-        </div>
-    </fieldset>
-    <fieldset>
-        <legend>Default Auto Scroll</legend>
-        <div class="control-group" title="Automatically scroll down the page while the timer is running.">
-            <label for="autoScroll">Enable Auto Scroll:</label>
-            <input type="checkbox" id="autoScroll">
-        </div>
-        <div class="control-group" title="Scroll back to the top of the page when switching to a new tab.">
-            <label for="scrollToTop">Scroll to Top on Switch:</label>
-            <input type="checkbox" id="scrollToTop">
-        </div>
-        <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
-            <label for="scrollDelay">Scroll Delay (sec):</label>
-            <input type="number" id="scrollDelay" min="0" value="5">
-        </div>
-        <div class="control-group" title="Adjust how fast the page scrolls.">
-            <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
-            <input type="range" id="scrollSpeed" min="1" max="100" value="20">
-        </div>
-    </fieldset>
-    </div>
-    <div>
     <fieldset>
         <legend>Current Tab</legend>
         <div id="pageRuleEditor">
             <div id="pageLabel"></div>
+            <div id="ruleFields" class="rule-columns">
+            <div>
             <div class="control-group" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
-                <label for="ruleScope">Apply to:</label>
+                <label for="ruleScope">Apply To:</label>
                 <select id="ruleScope">
-                    <option value="site">This site</option>
+                    <option value="site">Whole site</option>
                     <option value="page">This page only</option>
                 </select>
+            </div>
+            <div class="control-group" title="How long this site or page stays on screen before switching to the next tab.">
+                <label for="ruleDisplayMode">Show For:</label>
+                <div class="inline-inputs">
+                    <select id="ruleDisplayMode">
+                        <option value="default">Use default</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <span id="ruleDisplayWrap">
+                        <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
+                        <label for="ruleDisplaySeconds">sec</label>
+                    </span>
+                </div>
             </div>
             <div class="control-group" title="How this site or page is refreshed.">
                 <label for="ruleMode">Refresh:</label>
                 <select id="ruleMode"></select>
             </div>
             <div id="ruleMinutesWrap" class="control-group" title="Age limit or refresh period for this rule, in minutes.">
-                <label for="ruleMinutes">Minutes:</label>
+                <label for="ruleMinutes" id="ruleMinutesLabel">If Older Than (min):</label>
                 <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
             </div>
+            </div>
+            <div>
             <div class="control-group" title="Whether this site or page auto scrolls.">
                 <label for="ruleScrollMode">Auto Scroll:</label>
                 <select id="ruleScrollMode">
                     <option value="default">Use default</option>
-                    <option value="on">On</option>
-                    <option value="off">Off</option>
+                    <option value="off">Disable</option>
+                    <option value="on">Enable</option>
                 </select>
             </div>
             <div id="ruleScrollOptions">
@@ -355,24 +360,21 @@
                     <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
                 </div>
             </div>
-            <div id="effectiveRule"></div>
+            </div>
+            </div>
+            <div class="summary-row">
+                <div id="effectiveRule"></div>
+                <button id="customize" class="link-button" title="Give this site or page its own Show For, Refresh or Auto Scroll.">Customize</button>
+            </div>
         </div>
         <div id="pageRuleUnavailable" class="note" hidden>Page rules are not available for this tab.</div>
     </fieldset>
     <div class="rules-row">
-        <span>Saved rules: <span id="ruleCount">0</span></span>
-        <button id="manageRules" class="link-button" title="View, edit and remove all saved site and page rules in a full tab.">Manage rules</button>
-    </div>
-    </div>
-    </div>
-    <div class="note">
-        Settings apply to all windows. Page rules apply wherever that page is open.
+        <span>Saved Rules: <span id="ruleCount">0</span></span>
+        <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
     </div>
     <div class="footer">
         <button id="saveAll">Save Settings</button>
-        <label for="badgeColor" title="Change the color of the countdown badge on the extension icon.">Badge:</label>
-        <input type="color" id="badgeColor" title="Change the color of the countdown badge on the extension icon.">
-        <button id="toggleBadge" class="link-button">Hide Badge</button>
     </div>
     <div id="status"></div>
     <script src="shared.js"></script>

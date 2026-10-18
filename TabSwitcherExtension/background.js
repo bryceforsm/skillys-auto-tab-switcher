@@ -44,6 +44,7 @@ async function init() {
         w.restoreState = saved.restoreState ?? null;
         const tab = await getActiveTab(windowId);
         w.activeTabId = tab ? tab.id : null;
+        w.activeUrl = tab ? tab.url : null;
         windows.set(windowId, w);
         if (isPaused(w)) pause(w); else resume(w);
     }
@@ -63,6 +64,7 @@ function newWindowState(windowId) {
         hoverPaused: false,
         switchingTo: null,    // tab we activated ourselves, so onActivated can ignore it
         activeTabId: null,
+        activeUrl: null,      // URL of activeTabId, used to pick its display time
         badgeTabId: null,
         restoreState: null    // window state to return to on stop, set only if we made it full screen
     };
@@ -88,7 +90,7 @@ function resume(w) {
 
 function restartCountdown(w) {
     w.deadline = null;
-    w.remaining = settings.switchInterval * 1000;
+    w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
     resume(w);
     persistRunning();
 }
@@ -113,6 +115,7 @@ async function startWindow(windowId) {
     if (settings.fullscreenOnStart) await enterFullscreen(w);
     const tab = await getActiveTab(windowId);
     w.activeTabId = tab ? tab.id : null;
+    w.activeUrl = tab ? tab.url : null;
     restartCountdown(w);
     if (tab && !activityPaused) startScrolling(tab.id, true);
     ensureTicker();
@@ -212,6 +215,7 @@ async function switchTab(windowId, w) {
 
     const tab = await chrome.tabs.get(next.id);
     if (windows.get(windowId) !== w) return;
+    w.activeUrl = tab.url || tab.pendingUrl;
 
     if (shouldRefreshOnSwitch(tab)) {
         waitForLoad(w, tab.id);
@@ -321,7 +325,7 @@ function applySettingsChange(prev) {
 
     for (const [windowId, w] of windows) {
         if (prev.pauseMode === 'hover' && settings.pauseMode !== 'hover') w.hoverPaused = false;
-        if (prev.switchInterval !== settings.switchInterval) {
+        if (displaySecondsFor(prev, w.activeUrl) !== displaySecondsFor(settings, w.activeUrl)) {
             restartCountdown(w);
         } else {
             resume(w);
@@ -440,13 +444,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         persistLoadTimes();
         const w = windows.get(tab.windowId);
         if (!w) return;
+        if (w.activeTabId === tabId) w.activeUrl = tab.url;
         if (w.waitingTabId === tabId) finishWait(w, tabId);
         else if (tab.active && !activityPaused) startScrolling(tabId, false);
     });
 });
 
 chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
-    ready.then(() => {
+    ready.then(async () => {
         const w = windows.get(windowId);
         if (!w) return;
         if (w.switchingTo === tabId) {
@@ -456,6 +461,9 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
         // The user picked a tab by hand: give it a full interval and move scrolling over to it.
         if (w.activeTabId !== null && w.activeTabId !== tabId) sendToTab(w.activeTabId, STOP_SCROLLING);
         w.activeTabId = tabId;
+        const tab = await chrome.tabs.get(tabId).catch(() => null);
+        if (windows.get(windowId) !== w || w.activeTabId !== tabId) return;
+        w.activeUrl = tab ? tab.url || tab.pendingUrl : null;
         w.hoverPaused = false;
         if (w.waitingTabId !== null) {
             clearTimeout(w.waitTimer);
@@ -472,7 +480,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
         delete tabLoadedAt[tabId];
         persistLoadTimes();
         for (const w of windows.values()) {
-            if (w.activeTabId === tabId) w.activeTabId = null;
+            if (w.activeTabId === tabId) {
+                w.activeTabId = null;
+                w.activeUrl = null;
+            }
             if (w.badgeTabId === tabId) w.badgeTabId = null;
             if (w.waitingTabId === tabId) {
                 clearTimeout(w.waitTimer);

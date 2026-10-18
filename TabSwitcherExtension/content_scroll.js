@@ -11,7 +11,9 @@
     let hovering = false;
     let resumeDelaying = false;
     let reportedHover = null;
-    let scrollIntervalId = null;
+    let frameId = null;
+    let lastFrame = 0;
+    let carry = 0; // distance owed but smaller than one device pixel
     let startTimeoutId = null;
     let resumeTimeoutId = null;
 
@@ -29,7 +31,7 @@
             return;
         }
         const pausedByHover = pauseOnHover && (hovering || resumeDelaying);
-        if (scrollingActive && !pausedByHover) startInterval(); else stopInterval();
+        if (scrollingActive && !pausedByHover) startLoop(); else stopLoop();
 
         if (pauseOnHover && pausedByHover !== reportedHover) {
             reportedHover = pausedByHover;
@@ -37,20 +39,40 @@
         }
     }
 
-    function startInterval() {
-        if (scrollIntervalId) return;
-        scrollIntervalId = setInterval(() => {
-            if (!contextAlive()) {
-                cleanup();
-                return;
-            }
-            window.scrollBy(0, 1);
-        }, Math.max(5, 105 - speed));
+    // Speed 20 is about 12 px/s and speed 100 is 200 px/s.
+    function pixelsPerSecond() {
+        return 1000 / Math.max(5, 105 - speed);
     }
 
-    function stopInterval() {
-        clearInterval(scrollIntervalId);
-        scrollIntervalId = null;
+    function step(now) {
+        if (!contextAlive()) {
+            cleanup();
+            return;
+        }
+        // Cap the gap so a frame after a long stall (hidden tab, busy page) doesn't jump.
+        carry += Math.min(now - lastFrame, 100) * pixelsPerSecond() / 1000;
+        lastFrame = now;
+        // Whole device pixels keep every step the same size, so motion stays even on any display.
+        const unit = 1 / (window.devicePixelRatio || 1);
+        const move = Math.floor(carry / unit) * unit;
+        if (move > 0) {
+            // 'instant' overrides pages that set scroll-behavior: smooth, which would animate every step.
+            window.scrollBy({ top: move, behavior: 'instant' });
+            carry -= move;
+        }
+        frameId = requestAnimationFrame(step);
+    }
+
+    function startLoop() {
+        if (frameId) return;
+        lastFrame = performance.now();
+        carry = 0;
+        frameId = requestAnimationFrame(step);
+    }
+
+    function stopLoop() {
+        cancelAnimationFrame(frameId);
+        frameId = null;
     }
 
     function reset() {
@@ -59,7 +81,7 @@
         // Hover state from an earlier visit is stale, since mouseout does not fire when the tab is hidden.
         hovering = false;
         reportedHover = null;
-        stopInterval();
+        stopLoop();
         clearTimeout(startTimeoutId);
         clearTimeout(resumeTimeoutId);
     }

@@ -3,17 +3,17 @@ const MINUTE_MODES = ['stale', 'background'];
 
 let currentWindowId = null;
 let timerRunning = false;
-let badgeVisible = true;
+let defaults = normalizeSettings({}); // stored settings, for the defaults rules fall back to
 let rules = {};        // working copy of pageRules, persisted by Save Settings
 let pageKeys = null;   // rule keys for the active tab, null when rules cannot apply to it
 let pageUrl = '';
+let customizing = false;
 let savedSnapshot = '';
 
 init();
 
 async function init() {
-    fillModeSelect($('defaultMode'), false);
-    fillModeSelect($('ruleMode'), true);
+    fillModeSelect($('ruleMode'));
 
     const [win, [tab], stored] = await Promise.all([
         chrome.windows.getCurrent(),
@@ -21,31 +21,18 @@ async function init() {
         chrome.storage.local.get(null)
     ]);
     currentWindowId = win.id;
-    const s = normalizeSettings(stored);
+    defaults = normalizeSettings(stored);
 
-    badgeVisible = s.badgeVisible;
-    rules = structuredClone(s.pageRules);
-    $('interval').value = s.switchInterval;
-    $('pauseMode').value = s.pauseMode;
-    $('autoStart').checked = s.autoStart;
-    $('theme').value = s.theme;
-    $('fullscreenOnStart').checked = s.fullscreenOnStart;
-    $('defaultMode').value = s.defaultRefresh.mode;
-    $('defaultMinutes').value = s.defaultRefresh.minutes;
-    $('autoScroll').checked = s.defaultScroll.autoScroll;
-    $('scrollToTop').checked = s.defaultScroll.scrollToTop;
-    $('scrollDelay').value = s.defaultScroll.scrollDelay;
-    $('scrollSpeed').value = s.defaultScroll.scrollSpeed;
-    $('scrollSpeedDisplay').textContent = s.defaultScroll.scrollSpeed;
-    $('badgeColor').value = s.badgeColor;
+    rules = structuredClone(defaults.pageRules);
+    $('interval').value = defaults.switchInterval;
+    $('pauseMode').value = defaults.pauseMode;
 
     setupPageEditor(tab);
     renderRuleList();
     updateVisibility();
     savedSnapshot = snapshot();
 
-    for (const id of ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart', 'defaultMode', 'defaultMinutes', 'autoScroll',
-        'scrollToTop', 'scrollDelay', 'scrollSpeed', 'badgeColor']) {
+    for (const id of ['interval', 'pauseMode']) {
         $(id).addEventListener('input', onFormChange);
         $(id).addEventListener('change', onFormChange);
     }
@@ -53,45 +40,33 @@ async function init() {
         loadEditorRule();
         checkUnsavedChanges();
     });
-    for (const id of ['ruleMode', 'ruleMinutes', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
+    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
         $(id).addEventListener('input', onRuleEdit);
         $(id).addEventListener('change', onRuleEdit);
     }
-    $('scrollSpeed').addEventListener('input', () => {
-        $('scrollSpeedDisplay').textContent = $('scrollSpeed').value;
-    });
     $('ruleScrollSpeed').addEventListener('input', () => {
         $('ruleScrollSpeedDisplay').textContent = $('ruleScrollSpeed').value;
     });
+    $('customize').addEventListener('click', () => {
+        customizing = true;
+        updateVisibility();
+    });
     $('saveAll').addEventListener('click', save);
     $('toggleTimer').addEventListener('click', toggleTimer);
-    $('toggleBadge').addEventListener('click', toggleBadge);
-    // Applies immediately, like the badge toggle, rather than waiting for Save Settings.
-    $('theme').addEventListener('change', () => chrome.storage.local.set({ theme: $('theme').value }));
     $('manageRules').addEventListener('click', manageRules);
 
-    updateBadgeButtonState();
     const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
     timerRunning = !!response?.running;
     updateButtonState();
 }
 
-function fillModeSelect(select, includeDefault) {
-    if (includeDefault) select.add(new Option('Use default', 'default'));
+function fillModeSelect(select) {
+    select.add(new Option('Use default', 'default'));
     for (const [value, label] of Object.entries(REFRESH_MODES)) select.add(new Option(label, value));
 }
 
-function currentDefaultRefresh() {
-    return { mode: $('defaultMode').value, minutes: clampInt($('defaultMinutes').value, 1, 1440, 5) };
-}
-
-function currentDefaultScroll() {
-    return {
-        autoScroll: $('autoScroll').checked,
-        scrollToTop: $('scrollToTop').checked,
-        scrollDelay: clampInt($('scrollDelay').value, 0, 3600, 5),
-        scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20)
-    };
+function currentInterval() {
+    return clampInt($('interval').value, 5, 86400, 30);
 }
 
 // ---------- Per-page rule editor ----------
@@ -103,6 +78,11 @@ function setupPageEditor(tab) {
         $('pageRuleUnavailable').hidden = false;
         return;
     }
+    // Edit a rule saved under the www or non-www form rather than creating a second one.
+    if (!rules[pageKeys.site] && rules[pageKeys.siteTwin]) pageKeys.site = pageKeys.siteTwin;
+    if (!rules[pageKeys.page] && rules[pageKeys.pageTwin]) pageKeys.page = pageKeys.pageTwin;
+    // Pages without a rule start collapsed to a one-line summary.
+    customizing = !!(rules[pageKeys.page] || (pageKeys.site && rules[pageKeys.site]));
     pageUrl = tab.url;
     const url = new URL(tab.url);
     $('pageLabel').textContent = url.host + url.pathname;
@@ -121,9 +101,12 @@ function loadEditorRule() {
     if (!pageKeys) return;
     const rule = rules[editorKey()] || {};
     $('ruleMode').value = rule.refresh ? rule.refresh.mode : 'default';
-    $('ruleMinutes').value = (rule.refresh || currentDefaultRefresh()).minutes;
+    $('ruleMinutes').value = (rule.refresh || defaults.defaultRefresh).minutes;
 
-    const scroll = rule.scroll || currentDefaultScroll();
+    $('ruleDisplayMode').value = rule.display ? 'custom' : 'default';
+    $('ruleDisplaySeconds').value = rule.display ? rule.display.seconds : currentInterval();
+
+    const scroll = rule.scroll || defaults.defaultScroll;
     $('ruleScrollMode').value = rule.scroll ? (rule.scroll.autoScroll ? 'on' : 'off') : 'default';
     $('ruleScrollToTop').checked = scroll.scrollToTop;
     $('ruleScrollDelay').value = scroll.scrollDelay;
@@ -141,6 +124,9 @@ function onRuleEdit() {
     if (mode !== 'default') {
         rule.refresh = { mode, minutes: clampInt($('ruleMinutes').value, 1, 1440, 5) };
     }
+    if ($('ruleDisplayMode').value === 'custom') {
+        rule.display = { seconds: clampInt($('ruleDisplaySeconds').value, 5, 86400, 30) };
+    }
     const scrollMode = $('ruleScrollMode').value;
     if (scrollMode !== 'default') {
         rule.scroll = {
@@ -150,7 +136,7 @@ function onRuleEdit() {
             scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20)
         };
     }
-    if (rule.refresh || rule.scroll) rules[key] = rule; else delete rules[key];
+    if (rule.refresh || rule.scroll || rule.display) rules[key] = rule; else delete rules[key];
     updateVisibility();
     renderRuleList();
     checkUnsavedChanges();
@@ -158,10 +144,16 @@ function onRuleEdit() {
 
 function updateEffectiveRule() {
     if (!pageKeys) return;
-    const s = { pageRules: rules, defaultRefresh: currentDefaultRefresh(), defaultScroll: currentDefaultScroll() };
+    const s = {
+        pageRules: rules,
+        switchInterval: currentInterval(),
+        defaultRefresh: defaults.defaultRefresh,
+        defaultScroll: defaults.defaultScroll
+    };
     $('effectiveRule').textContent =
-        'Refresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
-        '\nScroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
+        'Show For in effect: ' + describeDisplay(displaySecondsFor(s, pageUrl)) +
+        '\nRefresh in effect: ' + describeRefresh(refreshRuleFor(s, pageUrl)) +
+        '\nAuto Scroll in effect: ' + describeScroll(scrollSettingsFor(s, pageUrl));
 }
 
 function renderRuleList() {
@@ -172,7 +164,7 @@ function renderRuleList() {
 function manageRules() {
     // Opening a tab closes the popup, which would silently drop unsaved edits.
     if (snapshot() !== savedSnapshot) {
-        $('status').textContent = 'Save your changes before opening the rules page.';
+        $('status').textContent = 'Save your changes before opening More Settings and Rules.';
         return;
     }
     chrome.runtime.openOptionsPage();
@@ -181,21 +173,19 @@ function manageRules() {
 // ---------- Form state ----------
 
 function updateVisibility() {
-    $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
+    $('ruleFields').hidden = !customizing;
+    $('customize').hidden = customizing;
     $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
+    $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value);
+    $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
     $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
 }
 
 function collectSettings() {
     return {
-        switchInterval: clampInt($('interval').value, 5, 86400, 30),
+        switchInterval: currentInterval(),
         pauseMode: $('pauseMode').value,
-        autoStart: $('autoStart').checked,
-        fullscreenOnStart: $('fullscreenOnStart').checked,
-        defaultRefresh: currentDefaultRefresh(),
-        defaultScroll: currentDefaultScroll(),
-        pageRules: Object.fromEntries(Object.keys(rules).sort().map((key) => [key, rules[key]])),
-        badgeColor: $('badgeColor').value
+        pageRules: Object.fromEntries(Object.keys(rules).sort().map((key) => [key, rules[key]]))
     };
 }
 
@@ -211,13 +201,17 @@ function onFormChange() {
 
 function checkUnsavedChanges() {
     const saveBtn = $('saveAll');
+    const status = $('status');
     if (snapshot() !== savedSnapshot) {
         saveBtn.classList.add('unsaved');
         saveBtn.textContent = 'Save Settings (Unsaved Changes)';
-        $('status').textContent = '';
+        status.textContent = 'Unsaved changes are lost when this popup closes.';
+        status.classList.add('warning');
     } else {
         saveBtn.classList.remove('unsaved');
         saveBtn.textContent = 'Save Settings';
+        if (status.classList.contains('warning')) status.textContent = '';
+        status.classList.remove('warning');
     }
 }
 
@@ -228,8 +222,6 @@ async function save() {
 
     // Show the values as they were clamped and saved.
     $('interval').value = settings.switchInterval;
-    $('scrollDelay').value = settings.defaultScroll.scrollDelay;
-    $('defaultMinutes').value = settings.defaultRefresh.minutes;
     loadEditorRule();
 
     savedSnapshot = snapshot();
@@ -237,7 +229,7 @@ async function save() {
     $('status').textContent = 'Settings saved.';
 }
 
-// ---------- Timer and badge buttons ----------
+// ---------- Timer button ----------
 
 async function toggleTimer() {
     const command = timerRunning ? 'stopTimer' : 'startTimer';
@@ -246,18 +238,8 @@ async function toggleTimer() {
     updateButtonState();
 }
 
-function toggleBadge() {
-    badgeVisible = !badgeVisible;
-    chrome.storage.local.set({ badgeVisible });
-    updateBadgeButtonState();
-}
-
 function updateButtonState() {
     const button = $('toggleTimer');
     button.textContent = timerRunning ? 'Stop Timer' : 'Start Timer';
     button.classList.toggle('running', timerRunning);
-}
-
-function updateBadgeButtonState() {
-    $('toggleBadge').textContent = badgeVisible ? 'Hide Badge' : 'Show Badge';
 }

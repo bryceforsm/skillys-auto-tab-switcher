@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Skilly's Auto Tab Switcher - Saved Rules</title>
+    <title>Skilly's Auto Tab Switcher - Settings and Rules</title>
     <style>
         [hidden] {
             display: none !important;
@@ -34,9 +34,53 @@
         .muted {
             color: #5f6368;
         }
-        #defaults {
+        .intro {
             font-size: 13px;
-            margin: 0 0 12px 0;
+            margin: 0 0 16px 0;
+        }
+        h2.section {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+        }
+        h2.section.rules {
+            margin-top: 24px;
+        }
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .settings {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        fieldset {
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 0;
+            min-width: 0;
+        }
+        legend {
+            font-size: 14px;
+            font-weight: 500;
+            padding: 0 5px;
+        }
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="color"] {
+            border: none;
+            width: 32px;
+            height: 24px;
+            padding: 0;
+            background: none;
+            cursor: pointer;
         }
         .toolbar {
             display: flex;
@@ -48,6 +92,14 @@
         }
         #count {
             margin-left: auto;
+        }
+        .toolbar-check {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
         }
         input[type="search"] {
             flex: 1;
@@ -75,12 +127,16 @@
         }
         col.target { width: auto; }
         col.type { width: 90px; }
-        col.refresh { width: 23%; }
-        col.scroll { width: 23%; }
+        col.display { width: 100px; }
+        col.refresh { width: 20%; }
+        col.scroll { width: 20%; }
         col.actions { width: 160px; }
         td.target {
             /* Long URLs wrap instead of forcing a horizontal scrollbar. */
             overflow-wrap: anywhere;
+        }
+        td.target a {
+            color: #1a73e8;
         }
         td.actions {
             text-align: right;
@@ -98,6 +154,10 @@
         button:hover {
             background-color: #e8eaed;
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
         button.primary {
             background-color: #1a73e8;
             border-color: #1a73e8;
@@ -108,6 +168,24 @@
         }
         button.danger {
             color: #d93025;
+        }
+        th button.sort {
+            padding: 0;
+            border: none;
+            background: none;
+            color: inherit;
+            font: inherit;
+        }
+        th button.sort:hover {
+            text-decoration: underline;
+        }
+        th[aria-sort="ascending"] button.sort::after {
+            content: " \25B2";
+            font-size: 10px;
+        }
+        th[aria-sort="descending"] button.sort::after {
+            content: " \25BC";
+            font-size: 10px;
         }
         #empty {
             font-size: 14px;
@@ -149,6 +227,9 @@
         #editTarget.error {
             color: #d93025;
         }
+        #editTarget.warning {
+            color: #b06000;
+        }
         input[type="text"] {
             flex: 1;
             min-width: 0;
@@ -175,6 +256,25 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        .inline-inputs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 220px;
+        }
+        .inline-inputs select {
+            flex: 1;
+            min-width: 0;
+            width: auto;
+        }
+        .inline-inputs span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .inline-inputs input[type="number"] {
+            width: 50px;
+        }
         input[type="number"] {
             width: 60px;
             padding: 4px;
@@ -199,7 +299,7 @@
                 background-color: #202124;
                 color: #e8eaed;
             }
-            header, th, td, dialog {
+            header, th, td, dialog, fieldset {
                 border-color: #3c4043;
             }
             .muted, th, label {
@@ -208,8 +308,14 @@
             #editTarget {
                 color: #8ab4f8;
             }
+            td.target a {
+                color: #8ab4f8;
+            }
             #editTarget.error {
                 color: #f28b82;
+            }
+            #editTarget.warning {
+                color: #fdd663;
             }
             input[type="search"], input[type="text"], input[type="number"], select {
                 background-color: #292a2d;
@@ -232,6 +338,10 @@
             button.danger {
                 color: #f28b82;
             }
+            th button.sort, th button.sort:hover {
+                background: none;
+                color: inherit;
+            }
         }
     </style>
     <script src="theme.js"></script>
@@ -240,38 +350,131 @@
     <main>
         <header>
             <img src="icons/icon48.png" alt="" width="32" height="32">
-            <h1>Skilly's Auto Tab Switcher - Saved Rules</h1>
+            <h1>Skilly's Auto Tab Switcher - Settings and Rules</h1>
         </header>
-        <p id="defaults" class="muted"></p>
+        <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
+        <h2 class="section">Settings</h2>
+        <section class="settings">
+            <fieldset>
+                <legend>Timer</legend>
+                <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
+                    <label for="interval">Show Each Tab For (sec):</label>
+                    <input type="number" id="interval" min="5" max="86400" value="30">
+                </div>
+                <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page).">
+                    <label for="pauseMode">Pause Timer:</label>
+                    <select id="pauseMode">
+                        <option value="disable">Disable</option>
+                        <option value="activity">On activity</option>
+                        <option value="hover">On hover</option>
+                    </select>
+                </div>
+                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
+                    <label for="autoStart">Auto Start on Browser Launch:</label>
+                    <input type="checkbox" id="autoStart">
+                </div>
+                <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
+                    <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
+                    <input type="checkbox" id="fullscreenOnStart">
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>General</legend>
+                <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
+                    <label for="badgeVisible">Countdown Badge:</label>
+                    <span class="inline">
+                        <input type="color" id="badgeColor" aria-label="Badge color">
+                        <input type="checkbox" id="badgeVisible">
+                    </span>
+                </div>
+                <div class="control-group" title="Color theme for the extension pages. System follows your OS setting.">
+                    <label for="theme">Theme:</label>
+                    <select id="theme">
+                        <option value="system">System</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Default Refresh</legend>
+                <div class="control-group" title="How pages without their own refresh rule are refreshed.">
+                    <label for="defaultMode">Refresh:</label>
+                    <select id="defaultMode"></select>
+                </div>
+                <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
+                    <label for="defaultMinutes" id="defaultMinutesLabel">If Older Than (min):</label>
+                    <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Default Auto Scroll</legend>
+                <div class="control-group" title="Automatically scroll down the page while the timer is running.">
+                    <label for="autoScroll">Auto Scroll:</label>
+                    <select id="autoScroll">
+                        <option value="off">Disable</option>
+                        <option value="on">Enable</option>
+                    </select>
+                </div>
+                <div id="defaultScrollOptions">
+                    <div class="control-group" title="Scroll back to the top of the page when switching to a new tab.">
+                        <label for="scrollToTop">Scroll to Top on Switch:</label>
+                        <input type="checkbox" id="scrollToTop">
+                    </div>
+                    <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
+                        <label for="scrollDelay">Scroll Delay (sec):</label>
+                        <input type="number" id="scrollDelay" min="0" max="3600" value="5">
+                    </div>
+                    <div class="control-group" title="Adjust how fast the page scrolls.">
+                        <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
+                        <input type="range" id="scrollSpeed" min="1" max="100" value="20">
+                    </div>
+                </div>
+            </fieldset>
+        </section>
+        <h2 class="section rules">Rules</h2>
         <div class="toolbar">
             <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
             <span id="count" class="muted"></span>
-            <button type="button" id="addRule" class="primary">Add rule</button>
+            <label class="toolbar-check" title="Also export and import Show Each Tab For, Default Refresh and Default Auto Scroll.">
+                <input type="checkbox" id="includeDefaults"> Include Defaults
+            </label>
+            <button type="button" id="importRules" title="Add rules from a file exported by this extension.">Import</button>
+            <button type="button" id="exportRules" title="Save all rules to a file.">Export</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+            <button type="button" id="addRule" class="primary">Add Rule</button>
         </div>
         <table id="table">
             <colgroup>
-                <col class="target"><col class="type"><col class="refresh"><col class="scroll"><col class="actions">
+                <col class="target"><col class="type"><col class="display"><col class="refresh"><col class="scroll"><col class="actions">
             </colgroup>
             <thead>
-                <tr><th>Applies to</th><th>Type</th><th>Refresh</th><th>Auto scroll</th><th></th></tr>
+                <tr>
+                    <th><button type="button" class="sort" data-sort="target">Applies To</button></th>
+                    <th><button type="button" class="sort" data-sort="type">Type</button></th>
+                    <th><button type="button" class="sort" data-sort="display">Show For</button></th>
+                    <th><button type="button" class="sort" data-sort="refresh">Refresh</button></th>
+                    <th><button type="button" class="sort" data-sort="scroll">Auto Scroll</button></th>
+                    <th></th>
+                </tr>
             </thead>
             <tbody id="rules"></tbody>
         </table>
-        <p id="empty" class="muted" hidden>No saved rules yet. Click Add rule, or open the extension popup on a page to add one.</p>
+        <p id="empty" class="muted" hidden>No saved rules yet. Click Add Rule, or open the extension popup on a page to add one.</p>
         <section class="reset">
             <div>
-                <strong>Reset to defaults</strong>
+                <strong>Reset to Defaults</strong>
                 <div class="muted">Restores every extension setting to its default and removes all saved rules.</div>
             </div>
-            <button type="button" id="resetAll" class="danger">Reset to defaults</button>
+            <button type="button" id="resetAll" class="danger">Reset to Defaults</button>
         </section>
     </main>
 
     <dialog id="editor">
         <form id="editorForm" method="dialog">
-            <h2 id="editTitle">Edit rule</h2>
+            <h2 id="editTitle">Edit Rule</h2>
             <div class="control-group">
-                <label for="editType">Apply to:</label>
+                <label for="editType">Apply To:</label>
                 <select id="editType">
                     <option value="host">Whole site</option>
                     <option value="page">This page only</option>
@@ -283,21 +486,34 @@
             </div>
             <div id="editTarget"></div>
             <div class="control-group">
+                <label for="editDisplay">Show For:</label>
+                <div class="inline-inputs">
+                    <select id="editDisplay">
+                        <option value="default">Use default</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <span id="editDisplayWrap">
+                        <input type="number" id="editDisplaySeconds" min="5" max="86400" value="30">
+                        <label for="editDisplaySeconds">sec</label>
+                    </span>
+                </div>
+            </div>
+            <div class="control-group">
                 <label for="editRefresh">Refresh:</label>
                 <select id="editRefresh">
                     <option value="default">Use default</option>
                 </select>
             </div>
             <div id="editMinutesWrap" class="control-group">
-                <label for="editMinutes">Minutes:</label>
+                <label for="editMinutes" id="editMinutesLabel">If Older Than (min):</label>
                 <input type="number" id="editMinutes" min="1" max="1440" value="5">
             </div>
             <div class="control-group">
                 <label for="editScroll">Auto Scroll:</label>
                 <select id="editScroll">
                     <option value="default">Use default</option>
-                    <option value="on">On</option>
-                    <option value="off">Off</option>
+                    <option value="off">Disable</option>
+                    <option value="on">Enable</option>
                 </select>
             </div>
             <div id="editScrollOptions">
@@ -316,7 +532,7 @@
             </div>
             <div class="dialog-buttons">
                 <button type="button" id="cancelEdit">Cancel</button>
-                <button type="submit" class="primary">Save rule</button>
+                <button type="submit" class="primary">Save Rule</button>
             </div>
         </form>
     </dialog>

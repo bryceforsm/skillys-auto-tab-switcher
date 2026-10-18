@@ -13,50 +13,45 @@ This extension automatically switches between your open tabs at an interval you 
 ## Features
 
 - **Auto Tab Switching:** Cycles through all open tabs in the window.
-- **Per-Page Rules:** Override refresh and auto scroll for a whole site or a single page. Refresh can happen every switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
+- **Per-Page Rules:** Override how long the page is shown, refresh and auto scroll for a whole site or a single page. Refresh can happen every switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
 - **Window Isolation:** Works only on the window where it was activated.
 - **Auto Scroll:** Automatically scrolls down the page at a configurable speed.
 - **Pause Modes:** Configurable options to pause the timer on user activity or when hovering over the page.
 - **Auto-Start:** Automatically starts the timer when the browser opens or a new window is created.
-- **Customizable Interval:** Set the switching time in seconds.
+- **Customizable Timing:** Set how many seconds each tab is shown, with longer or shorter times for individual sites or pages.
 - **Visual Countdown:** Shows a countdown badge on the extension icon.
 - **Customizable Badge:** Change the color of the badge or hide it completely.
 
 ## Usage
 
-1.  **Configure Settings:**
-    - Open the extension popup.
-    - Set the **Interval** in seconds (minimum 5).
-    - Select **Pause Timer** mode: Disable, On Activity, or On Hover.
-    - Toggle **Auto-Start Timer on Browser Launch** if desired (also applies to new windows).
-    - Toggle **Full Screen on Timer Start** to put the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
-    - **Default Refresh** sets how pages without their own rule are refreshed. Refresh modes:
-        - **Every switch:** reload each time the tab is shown.
-        - **Never:** never reload.
-        - **On switch, if older than N min:** reload when shown, but only if the page was last loaded more than N minutes ago.
-        - **Periodically, even in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
-    - **Default Auto Scroll** applies to pages without their own scroll rule:
-        - Toggle **Enable Auto Scroll** to start scrolling automatically.
-        - Toggle **Scroll to Top on Switch** to reset scroll position when switching tabs.
-        - Set **Scroll Delay** (seconds) to wait before scrolling starts.
-        - Adjust **Scroll Speed** slider (1-100).
-    - **Current Tab** creates a rule for the site or exact page open in the active tab:
-        - **Apply to** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
-        - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **On** shows its own scroll-to-top, delay and speed settings, and **Off** disables scrolling for that page.
-        - The lines underneath show which refresh and scroll settings are in effect for the tab.
-    - **Manage rules** (next to the saved rule count) opens a full page listing every rule, with a filter box and buttons to edit or remove each one. Editing also lets you change the site or page URL a rule applies to, and **Add rule** creates a new site or page rule without visiting the page. It is also available from **Options** when you right-click the extension icon. That page also has **Reset to defaults**, which asks for confirmation and then restores every setting and removes all rules.
-    - Choose a **Badge** color.
+1.  **Popup:**
+    - Click the extension icon to open the popup.
+    - Set **Show Each Tab For** in seconds (minimum 5).
+    - Select **Pause Timer** mode: Disable, On activity, or On hover.
+    - **Current Tab** shows the site or page open in the active tab and the settings in effect for it. Click **Customize** to give it its own rule (pages that already have a rule open the editor straight away):
+        - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
+        - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
+        - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **Enable** shows its own scroll-to-top, delay and speed settings, and **Disable** turns scrolling off for that page.
     - Click **Save Settings**.
+    - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop.
 
-2.  **Control Timer:**
-    - Click **Start Timer** to begin rotating through the current open tabs. The button will turn red to indicate the timer is running.
-    - Click **Stop Timer** to stop the tabs from switching.
-
-3.  **Badge Visibility:**
-    - Click the **Hide/Show Badge** button to toggle the countdown display.
-
-4.  **Theme:**
-    - Use the **Theme** dropdown at the top of the popup to choose **System** (default, follows your OS light or dark setting), **Light**, or **Dark**. It applies immediately to the popup and the rules page.
+2.  **More Settings and Rules:**
+    - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Changes on this page save as soon as you make them.
+    - **Timer:**
+        - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
+        - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).
+        - **Full Screen on Timer Start** puts the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
+    - **General:**
+        - **Countdown Badge** shows the seconds until the next switch on the extension icon, in the color you pick.
+        - **Theme** chooses **System** (default, follows your OS light or dark setting), **Light**, or **Dark**.
+    - **Default Refresh** sets how pages without their own rule are refreshed:
+        - **Disable:** never reload.
+        - **Every switch:** reload each time the tab is shown.
+        - **On switch, if older than N min:** reload when shown, but only if the page was last loaded more than N minutes ago.
+        - **Periodically, in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
+    - **Default Auto Scroll** applies to pages without their own scroll rule. Set **Auto Scroll** to **Enable** to show **Scroll to Top on Switch**, **Scroll Delay** (seconds) and **Scroll Speed** (1-100).
+    - **Rules** lists every rule, with a filter box and buttons to edit or remove each one. Rules are listed A to Z, and clicking a column heading sorts by that column (click again to reverse). Click a rule's site or URL to open it in a new tab. Editing also lets you change the site or page URL a rule applies to, and **Add Rule** creates a new site or page rule without visiting the page. **Export** saves every rule to a `.json` file, and **Import** adds the rules from such a file (rules for the same site or page are replaced, others are kept). Tick **Include Defaults** to also export and import **Show Each Tab For**, **Default Refresh** and **Default Auto Scroll**.
+    - **Reset to Defaults** asks for confirmation and then restores every setting and removes all rules.
 
 ## Installation (From Source)
 
