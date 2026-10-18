@@ -51,7 +51,7 @@ This extension automatically switches between your open tabs at an interval you 
         - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **Enable** shows its own scroll-to-top, delay and speed settings, and **Disable** turns scrolling off for that page.
-    - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop.
+    - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop. The keyboard shortcut is shown to the left of the button.
     - **Keyboard shortcut:** press **Alt+Shift+S** (**Control+Shift+S** on Mac) to start or stop the timer in the current window. To change it, open `chrome://extensions/shortcuts` (`edge://extensions/shortcuts` in Edge).
 
 2.  **More Settings and Rules:**
@@ -73,7 +73,7 @@ This extension automatically switches between your open tabs at an interval you 
             - **Periodically, in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
         - **Default Auto Scroll** applies to pages without their own scroll rule. Set it to **Enable** to show **Scroll to Top on Switch**, **Scroll Delay** (seconds) and **Scroll Speed** (1-100).
     - **Rules** lists every rule, with a filter box and buttons to edit or remove each one. Rules are listed A to Z, and clicking a column heading sorts by that column (click again to reverse). Click a rule's site or URL to open it in a new tab. Editing also lets you change the site or page URL a rule applies to, and **Add Rule** creates a new site or page rule without visiting the page. **Duplicate** opens a new rule with the same settings, ready for a different site or page. **Export** saves every rule to a `.json` file, and **Import** adds the rules from such a file (rules for the same site or page are replaced, others are kept). Tick **Include Defaults** to also export and import **Show Each Tab For**, **Default Refresh** and **Default Auto Scroll**.
-    - **Reset to Defaults** asks for confirmation and then restores every setting and removes all rules.
+    - **Reset to Defaults** asks for confirmation and then restores every setting and removes all rules. The keyboard shortcut is not changed.
 
 ## Installation (From Source)
 

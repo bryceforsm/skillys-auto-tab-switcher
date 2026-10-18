@@ -54,6 +54,22 @@ async function init() {
     const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
     timerRunning = !!response?.running;
     updateButtonState();
+    showShortcut();
+
+    // The keyboard shortcut can start or stop the timer while the popup is open.
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+        if (area !== 'session' || !changes.running) return;
+        const state = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
+        timerRunning = !!state?.running;
+        updateButtonState();
+    });
+}
+
+async function showShortcut() {
+    const commands = await chrome.commands.getAll();
+    const shortcut = commands.find((c) => c.name === 'toggle-timer')?.shortcut;
+    $('shortcutHint').textContent = shortcut || '';
+    $('shortcutHint').hidden = !shortcut;
 }
 
 function fillModeSelect(select) {

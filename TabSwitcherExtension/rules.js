@@ -489,7 +489,7 @@ async function importRules(event) {
 }
 
 async function resetAll() {
-    if (!confirm("Reset all Skilly's Auto Tab Switcher settings to their defaults?\n\nThis removes every saved rule and cannot be undone.")) return;
+    if (!confirm("Reset all Skilly's Auto Tab Switcher settings to their defaults?\n\nThis removes every saved rule and cannot be undone.\n\nThe keyboard shortcut is not changed.")) return;
     $('filter').value = '';
     await chrome.storage.local.clear();
     await chrome.storage.local.set(structuredClone(DEFAULTS));

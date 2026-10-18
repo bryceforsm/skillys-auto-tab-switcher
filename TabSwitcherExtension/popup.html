@@ -168,6 +168,15 @@
             display: flex;
             align-items: center;
         }
+        .timer-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #shortcutHint {
+            font-size: 11px;
+            color: #5f6368;
+        }
         .title-group img {
             margin-right: 10px;
         }
@@ -265,7 +274,7 @@
             h2, legend {
                 color: #e8eaed;
             }
-            label, .note, #effectiveRule {
+            label, .note, #effectiveRule, #shortcutHint {
                 color: #9aa0a6;
             }
             #pageLabel {
@@ -307,7 +316,10 @@
             <img src="icons/icon128.png" alt="Logo" width="32" height="32">
             <h2>Skilly's Auto Tab Switcher</h2>
         </div>
-        <button id="toggleTimer">Start Timer</button>
+        <div class="timer-group">
+            <span id="shortcutHint" hidden></span>
+            <button id="toggleTimer">Start Timer</button>
+        </div>
     </div>
     <div class="basics">
     <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
