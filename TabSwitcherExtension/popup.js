@@ -161,12 +161,14 @@ function renderRuleList() {
     updateEffectiveRule();
 }
 
-function manageRules() {
+async function manageRules() {
     // Opening a tab closes the popup, which would silently drop unsaved edits.
     if (snapshot() !== savedSnapshot) {
         $('status').textContent = 'Save your changes before opening More Settings and Rules.';
         return;
     }
+    // Otherwise the rotation would switch away from the settings tab.
+    if (timerRunning) await chrome.runtime.sendMessage({ command: 'stopTimer', windowId: currentWindowId });
     chrome.runtime.openOptionsPage();
 }
 
