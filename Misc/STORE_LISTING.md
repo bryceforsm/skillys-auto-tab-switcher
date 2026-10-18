@@ -86,7 +86,7 @@ Used to inject the extension's own bundled content script (content_scroll.js) in
 ### alarms justification
 
 ```text
-Used for a periodic heartbeat that wakes the background service worker so it can perform the "refresh periodically, even in background" option, which reloads hidden tabs on schedule so they are up to date when they are shown. Manifest V3 service workers are suspended when idle, so timers alone are not reliable for this.
+Used for a periodic heartbeat, only while the timer is running, that wakes the background service worker so it can perform the "refresh periodically, even in background" option, which reloads hidden tabs on schedule so they are up to date when they are shown. Manifest V3 service workers are suspended when idle, so timers alone are not reliable for this.
 ```
 
 ### Host permission justification

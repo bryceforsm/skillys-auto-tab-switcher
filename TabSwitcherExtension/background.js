@@ -25,10 +25,6 @@ async function init() {
     tabLoadedAt = session.tabLoadedAt || {};
 
     chrome.idle.setDetectionInterval(IDLE_SECONDS);
-    // Wakes the worker if Chrome suspends it, and drives background refreshes.
-    if (!(await chrome.alarms.get(HEARTBEAT_ALARM))) {
-        chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 0.5 });
-    }
     await refreshActivityState();
 
     // Session storage survives a worker restart but not a browser restart, so window IDs here are still valid.
@@ -50,7 +46,8 @@ async function init() {
         if (isPaused(w)) pause(w); else resume(w);
     }
     persistRunning();
-    if (windows.size) ensureTicker();
+    // Older versions kept the heartbeat alarm running even with no timer.
+    if (windows.size) ensureTicker(); else chrome.alarms.clear(HEARTBEAT_ALARM);
 }
 
 // ---------- Window state ----------
@@ -157,6 +154,7 @@ function forgetWindow(windowId) {
     if (!windows.size) {
         clearInterval(ticker);
         ticker = null;
+        chrome.alarms.clear(HEARTBEAT_ALARM);
     }
     return true;
 }
@@ -169,13 +167,20 @@ async function stopWindow(windowId) {
     for (const tab of tabs) {
         clearBadge(tab.id);
         sendToTab(tab.id, STOP_SCROLLING);
+        // Switching turned this off. Let Chrome unload the tab under memory pressure again.
+        if (!tab.autoDiscardable) chrome.tabs.update(tab.id, { autoDiscardable: true }).catch(() => {});
     }
 }
 
 // ---------- Countdown and switching ----------
 
 function ensureTicker() {
-    if (!ticker) ticker = setInterval(tick, 1000);
+    if (ticker) return;
+    ticker = setInterval(tick, 1000);
+    // Wakes the worker if Chrome suspends it, and drives background refreshes.
+    chrome.alarms.get(HEARTBEAT_ALARM).then((alarm) => {
+        if (!alarm) chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 0.5 });
+    });
 }
 
 // The per-second API calls in here also keep the service worker alive while a timer runs.
@@ -224,7 +229,7 @@ async function switchTab(windowId, w) {
 
     if (shouldRefreshOnSwitch(tab)) {
         waitForLoad(w, tab.id);
-        await chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => finishWait(w, tab.id));
+        await chrome.tabs.reload(tab.id).catch(() => finishWait(w, tab.id));
     } else if (tab.status !== 'complete') {
         // Discarded or still-loading tabs: start the countdown once the page is ready.
         waitForLoad(w, tab.id);
@@ -282,7 +287,7 @@ async function backgroundRefresh() {
                 tabLoadedAt[tab.id] = now;
                 persistLoadTimes();
             } else if (now - tabLoadedAt[tab.id] >= rule.minutes * 60000) {
-                chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => {});
+                chrome.tabs.reload(tab.id).catch(() => {});
             }
         }
     }
