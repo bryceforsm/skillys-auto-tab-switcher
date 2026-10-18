@@ -17,7 +17,7 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 
    | File | Use |
    |---|---|
-| `Misc/screenshot.png` | README image (popup with out-of-box settings, light and dark diagonal split, square corners) |
+| `Misc/screenshot.png` | README image (popup with out-of-box settings, light and dark diagonal split, light 1px frame on the dark half, square corners) |
 | `Misc/screenshot640x400.jpeg` | Small store screenshot (same out-of-box image) |
    | `Screenshot/popup-light.png`, `popup-dark.png` | 1280x800 store screenshots |
 | `Screenshot/popup-defaults.png` | 1280x800, out-of-box settings with no rules and the timer stopped |

@@ -84,16 +84,27 @@ try {
     $g = [Drawing.Graphics]::FromImage($split)
     $g.DrawImage($light, 0, 0, $popupWidth, $popupHeight)
     # Dark theme fills the bottom-left triangle, matching the original README image.
+    # The outer points sit past the image edges so only the diagonal gets anti-aliased.
     $points = [Drawing.Point[]]@(
-        (New-Object Drawing.Point 0, 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.24)), 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.63)), $popupHeight),
-        (New-Object Drawing.Point 0, $popupHeight))
+        (New-Object Drawing.Point -1, -1),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.24)), -1),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.63)), ($popupHeight + 1)),
+        (New-Object Drawing.Point -1, ($popupHeight + 1)))
     # Clip regions are never anti-aliased, but a filled polygon is, so paint the dark half as a texture.
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $brush = New-Object Drawing.TextureBrush $dark
     $g.FillPolygon($brush, $points)
     $brush.Dispose()
+    # A light 1px frame on every edge of the dark half, so it reads as a border on dark backgrounds.
+    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::None
+    $path = New-Object Drawing.Drawing2D.GraphicsPath
+    $path.AddPolygon($points)
+    $g.SetClip($path)
+    $pen = New-Object Drawing.Pen ([Drawing.Color]::FromArgb(143, 144, 145)), 1
+    $g.DrawRectangle($pen, 0, 0, $popupWidth - 1, $popupHeight - 1)
+    $pen.Dispose()
+    $g.ResetClip()
+    $path.Dispose()
     $g.Dispose()
     $light.Dispose()
     $dark.Dispose()

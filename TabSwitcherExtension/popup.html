@@ -137,6 +137,10 @@
             gap: 4px;
             font-size: 12px;
             color: #188038;
+            margin-top: 4px;
+        }
+        #status:has(#statusText:empty) {
+            display: none;
         }
         #status .link-button {
             padding: 0 5px;
@@ -238,7 +242,9 @@
             align-items: center;
             justify-content: space-between;
             font-size: 13px;
-            margin-bottom: 10px;
+            /* Mirrors the header line so the popup has a clear bottom edge. */
+            border-top: 1px solid #e0e0e0;
+            padding-top: 4px;
         }
         :root[data-theme="dark"] {
             color-scheme: dark;
@@ -260,7 +266,7 @@
                 color: #e8eaed;
                 border: 1px solid #5f6368;
             }
-            fieldset, .header-container {
+            fieldset, .header-container, .rules-row {
                 border-color: #5f6368;
             }
             .rule-chip {
