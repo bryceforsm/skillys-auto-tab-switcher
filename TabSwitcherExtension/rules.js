@@ -51,6 +51,9 @@ async function init() {
     $('editorForm').addEventListener('submit', saveEdit);
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
+    $('shortcutBtn').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+    window.addEventListener('focus', showShortcut);
+    showShortcut();
 
     windowId = (await chrome.windows.getCurrent()).id;
     // Keep the table current if the popup saves while this page is open.
@@ -60,6 +63,12 @@ async function init() {
     });
     await load();
     showTimerState();
+}
+
+async function showShortcut() {
+    const commands = await chrome.commands.getAll();
+    const toggle = commands.find((c) => c.name === 'toggle-timer');
+    $('shortcutBtn').textContent = toggle?.shortcut || 'Not set (click to set)';
 }
 
 async function showTimerState() {

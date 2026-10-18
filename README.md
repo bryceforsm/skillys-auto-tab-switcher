@@ -4,7 +4,7 @@ This extension automatically switches between your open tabs at an interval you 
 
 **Compatibility:** Since it's built for Chrome, it works with all Chromium-based browsers like **Google Chrome**, **Microsoft Edge**, **Brave**, **Vivaldi**, and **Opera**.
 
-**Why another tab rotator?** There are plenty of auto tab rotators on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
+**Why another tab rotator?** There are plenty of auto tab rotators/revolvers on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
 <p align="center">
   <img src="Screenshots/readme/screenshot.png" alt="Popup in the light and dark themes">
@@ -52,11 +52,13 @@ This extension automatically switches between your open tabs at an interval you 
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **Enable** shows its own scroll-to-top, delay and speed settings, and **Disable** turns scrolling off for that page.
     - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop.
+    - **Keyboard shortcut:** press **Alt+Shift+S** (**Control+Shift+S** on Mac) to start or stop the timer in the current window. To change it, open `chrome://extensions/shortcuts` (`edge://extensions/shortcuts` in Edge).
 
 2.  **More Settings and Rules:**
     - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
     - **Timer:**
         - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
+        - **Start/Stop Shortcut** shows the current keyboard shortcut. Click it to change it in the browser's shortcut settings.
         - **Full Screen on Timer Start** puts the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
     - **General:**
         - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).

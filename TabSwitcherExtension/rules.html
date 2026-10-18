@@ -297,6 +297,9 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        #shortcutBtn {
+            width: 220px;
+        }
         .inline-inputs {
             display: flex;
             align-items: center;
@@ -422,6 +425,10 @@
                 <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
                     <input type="checkbox" id="fullscreenOnStart">
+                </div>
+                <div class="control-group" title="Press this key combination to start or stop the timer in the current window. Click to change it in the browser's shortcut settings.">
+                    <label for="shortcutBtn">Start/Stop Shortcut:</label>
+                    <button type="button" id="shortcutBtn">Not set</button>
                 </div>
             </fieldset>
             <fieldset>

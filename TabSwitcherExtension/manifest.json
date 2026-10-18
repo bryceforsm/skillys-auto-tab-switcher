@@ -23,6 +23,15 @@
     "page": "rules.html",
     "open_in_tab": true
   },
+  "commands": {
+    "toggle-timer": {
+      "suggested_key": {
+        "default": "Alt+Shift+S",
+        "mac": "MacCtrl+Shift+S"
+      },
+      "description": "Start or stop the timer in the current window"
+    }
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

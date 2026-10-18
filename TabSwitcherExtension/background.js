@@ -445,6 +445,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
 });
 
+// The shortcut is set (and can be changed) at chrome://extensions/shortcuts.
+chrome.commands.onCommand.addListener((command) => {
+    if (command !== 'toggle-timer') return;
+    ready.then(async () => {
+        const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+        if (!win) return;
+        if (windows.has(win.id)) await stopWindow(win.id);
+        else await startWindow(win.id);
+    });
+});
+
 // The popup holds a port open while it is shown, so On hover also covers editing in the popup.
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'popup' || port.sender.tab) return;
