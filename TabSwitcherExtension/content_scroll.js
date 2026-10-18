@@ -9,6 +9,7 @@
     let delay = 0;
     let scrollingActive = false; // true once the start delay has passed
     let hovering = false;
+    let popupOpen = false;
     let resumeDelaying = false;
     let reportedHover = null;
     let frameId = null;
@@ -31,7 +32,7 @@
             return;
         }
         const pausedByHover = pauseOnHover && (hovering || resumeDelaying);
-        if (scrollingActive && !pausedByHover) startLoop(); else stopLoop();
+        if (scrollingActive && !pausedByHover && !(pauseOnHover && popupOpen)) startLoop(); else stopLoop();
 
         if (pauseOnHover && pausedByHover !== reportedHover) {
             reportedHover = pausedByHover;
@@ -98,6 +99,11 @@
         // relatedTarget is null only when the pointer leaves the page entirely.
         if (e.relatedTarget !== null) return;
         hovering = false;
+        startResumeDelay();
+        update();
+    }
+
+    function startResumeDelay() {
         if (pauseOnHover && delay > 0 && scrollingActive) {
             resumeDelaying = true;
             clearTimeout(resumeTimeoutId);
@@ -106,7 +112,6 @@
                 update();
             }, delay * 1000);
         }
-        update();
     }
 
     function onMessage(request, sender, sendResponse) {
@@ -114,6 +119,7 @@
             reset();
             autoScroll = !!request.autoScroll;
             pauseOnHover = !!request.pauseOnHover;
+            popupOpen = !!request.popupOpen;
             speed = Number(request.speed) || 20;
             delay = Math.max(0, Number(request.delay) || 0);
             if (autoScroll && request.scrollToTop) window.scrollTo(0, 0);
@@ -126,9 +132,15 @@
                 scrollingActive = autoScroll;
             }
             update();
+        } else if (request.command === 'popupState') {
+            const wasOpen = popupOpen;
+            popupOpen = !!request.open;
+            if (wasOpen && !popupOpen && !hovering) startResumeDelay();
+            update();
         } else if (request.command === 'stopScrolling') {
             reset();
             pauseOnHover = false;
+            popupOpen = false;
         } else {
             return;
         }

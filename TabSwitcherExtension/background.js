@@ -377,7 +377,8 @@ async function startScrolling(tabId, onArrival) {
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
-        pauseOnHover
+        pauseOnHover,
+        popupOpen: popupWindows.has(tab.windowId)
     };
     chrome.tabs.sendMessage(tabId, message).catch(async () => {
         // Tabs opened before install or update have no content script yet.
@@ -445,7 +446,9 @@ chrome.runtime.onConnect.addListener((port) => {
     let windowId = null;
     const update = () => {
         const w = windows.get(windowId);
-        if (w) updatePause(w);
+        if (!w) return;
+        updatePause(w);
+        if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'popupState', open: popupWindows.has(windowId) });
     };
     port.onMessage.addListener((msg) => {
         windowId = msg.windowId;
