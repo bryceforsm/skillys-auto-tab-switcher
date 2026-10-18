@@ -13,6 +13,8 @@ let sortDirection = 1;
 init();
 
 async function init() {
+    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
+
     for (const [value, label] of Object.entries(REFRESH_MODES)) {
         $('editRefresh').add(new Option(label, value));
         $('defaultMode').add(new Option(label, value));
