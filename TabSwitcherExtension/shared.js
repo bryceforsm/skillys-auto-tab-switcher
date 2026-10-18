@@ -173,3 +173,16 @@ function describeScroll(scroll) {
     const delay = scroll.scrollDelay ? `, ${scroll.scrollDelay}s delay` : '';
     return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}`;
 }
+
+// Page Up and Page Down step number boxes by 5 (the service worker has no document).
+if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+        const input = e.target;
+        if (e.key !== 'PageUp' && e.key !== 'PageDown') return;
+        if (!(input instanceof HTMLInputElement) || input.type !== 'number') return;
+        e.preventDefault();
+        if (e.key === 'PageUp') input.stepUp(5); else input.stepDown(5);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
