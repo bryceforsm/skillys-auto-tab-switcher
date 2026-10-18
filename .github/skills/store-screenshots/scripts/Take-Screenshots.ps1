@@ -86,8 +86,8 @@ try {
     # Dark theme fills the bottom-left triangle, matching the original README image.
     $points = [Drawing.Point[]]@(
         (New-Object Drawing.Point 0, 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.07)), 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.80)), $popupHeight),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.24)), 0),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.63)), $popupHeight),
         (New-Object Drawing.Point 0, $popupHeight))
     # Clip regions are never anti-aliased, but a filled polygon is, so paint the dark half as a texture.
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
