@@ -34,6 +34,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 - To check layout, open `popup.html` or `rules.html` via `file://` in the integrated browser. `chrome.*` is undefined there, so init throws and every section stays expanded (worst case for height).
 - For real testing, load the folder unpacked at `chrome://extensions` and reload it after changes.
 - Package with `.\Build-Package.ps1`. The zip name comes from today's date and the `version` in `manifest.json`, and `*.zip` is gitignored.
+- After UI or label changes, regenerate the README and store images with the `store-screenshots` skill (`.github/skills/store-screenshots/`) and check them for cut-off text.
 
 ## Conventions
 

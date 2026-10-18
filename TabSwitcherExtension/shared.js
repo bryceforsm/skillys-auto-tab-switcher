@@ -4,7 +4,7 @@ const REFRESH_MODES = {
     never: 'Disable',
     switch: 'Every switch',
     stale: 'On switch, if older than',
-    background: 'Periodically, even in background'
+    background: 'Periodically, in background'
 };
 
 const PAUSE_MODES = ['disable', 'activity', 'hover'];
@@ -147,7 +147,7 @@ function describeDisplay(seconds) {
 function describeRefresh(rule) {
     switch (rule.mode) {
         case 'stale': return `On switch, if older than ${rule.minutes} min`;
-        case 'background': return `Every ${rule.minutes} min, even in background`;
+        case 'background': return `Every ${rule.minutes} min, in background`;
         default: return REFRESH_MODES[rule.mode];
     }
 }

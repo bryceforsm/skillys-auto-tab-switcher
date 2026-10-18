@@ -34,7 +34,7 @@ This extension automatically switches between your open tabs at an interval you 
         - **Disable:** never reload.
         - **Every switch:** reload each time the tab is shown.
         - **On switch, if older than N min:** reload when shown, but only if the page was last loaded more than N minutes ago.
-        - **Periodically, even in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
+        - **Periodically, in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
     - **Default Auto Scroll** applies to pages without their own scroll rule:
         - Set **Auto Scroll** to **Enable** to start scrolling automatically.
         - Toggle **Scroll to Top on Switch** to reset scroll position when switching tabs.
