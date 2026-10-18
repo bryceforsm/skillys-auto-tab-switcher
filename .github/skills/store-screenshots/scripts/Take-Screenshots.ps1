@@ -5,13 +5,12 @@
 .DESCRIPTION
     Copies TabSwitcherExtension to a temp folder, injects assets/mock.js (fake chrome.* APIs with sample
     settings), renders each page in headless Edge or Chrome, then writes:
-      Misc/screenshot.png              Popup with out-of-box settings, light/dark diagonal split, used by the README
-      Misc/screenshot640x400.jpeg      Same image letterboxed to 640x400 for the store
-      Screenshot/popup-light.png       1280x800 store screenshots
-      Screenshot/popup-dark.png
-      Screenshot/popup-defaults.png    Out-of-box settings, no rules, timer stopped
-      Screenshot/rules-light.png
-      Screenshot/rules-edit-dark.png
+      Screenshots/readme/screenshot.png   Popup with out-of-box settings, light/dark diagonal split, used by the README
+      Screenshots/webstore/popup-light.png       1280x800 store screenshots
+      Screenshots/webstore/popup-dark.png
+      Screenshots/webstore/popup-defaults.png    Out-of-box settings, no rules, timer stopped
+      Screenshots/webstore/rules-light.png
+      Screenshots/webstore/rules-edit-dark.png
     Nothing in TabSwitcherExtension is modified.
 #>
 [CmdletBinding()]
@@ -84,45 +83,42 @@ try {
     $g = [Drawing.Graphics]::FromImage($split)
     $g.DrawImage($light, 0, 0, $popupWidth, $popupHeight)
     # Dark theme fills the bottom-left triangle, matching the original README image.
+    # The outer points sit past the image edges so only the diagonal gets anti-aliased.
     $points = [Drawing.Point[]]@(
-        (New-Object Drawing.Point 0, 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.24)), 0),
-        (New-Object Drawing.Point ([int]($popupWidth * 0.63)), $popupHeight),
-        (New-Object Drawing.Point 0, $popupHeight))
+        (New-Object Drawing.Point -1, -1),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.24)), -1),
+        (New-Object Drawing.Point ([int]($popupWidth * 0.63)), ($popupHeight + 1)),
+        (New-Object Drawing.Point -1, ($popupHeight + 1)))
     # Clip regions are never anti-aliased, but a filled polygon is, so paint the dark half as a texture.
     $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
     $brush = New-Object Drawing.TextureBrush $dark
     $g.FillPolygon($brush, $points)
     $brush.Dispose()
+    # A light 1px frame on every edge of the dark half, so it reads as a border on dark backgrounds.
+    $g.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::None
+    $path = New-Object Drawing.Drawing2D.GraphicsPath
+    $path.AddPolygon($points)
+    $g.SetClip($path)
+    $pen = New-Object Drawing.Pen ([Drawing.Color]::FromArgb(143, 144, 145)), 1
+    $g.DrawRectangle($pen, 0, 0, $popupWidth - 1, $popupHeight - 1)
+    $pen.Dispose()
+    $g.ResetClip()
+    $path.Dispose()
     $g.Dispose()
     $light.Dispose()
     $dark.Dispose()
 
-    $misc = Join-Path $repo 'Misc'
-    $split.Save((Join-Path $misc 'screenshot.png'), [Drawing.Imaging.ImageFormat]::Png)
-
-    $small = New-Object Drawing.Bitmap 640, 400
-    $g = [Drawing.Graphics]::FromImage($small)
-    $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $g.Clear([Drawing.Color]::FromArgb(238, 238, 238))
-    $scale = [Math]::Min(640 / $popupWidth, 400 / $popupHeight)
-    $w = [int]($popupWidth * $scale)
-    $h = [int]($popupHeight * $scale)
-    $g.DrawImage($split, [int]((640 - $w) / 2), [int]((400 - $h) / 2), $w, $h)
-    $g.Dispose()
-    $jpeg = [Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
-    $quality = New-Object Drawing.Imaging.EncoderParameters 1
-    $quality.Param[0] = New-Object Drawing.Imaging.EncoderParameter ([Drawing.Imaging.Encoder]::Quality), 92L
-    $small.Save((Join-Path $misc 'screenshot640x400.jpeg'), $jpeg, $quality)
-    $small.Dispose()
+    $readme = Join-Path $repo 'Screenshots\readme'
+    New-Item -ItemType Directory -Path $readme -Force | Out-Null
+    $split.Save((Join-Path $readme 'screenshot.png'), [Drawing.Imaging.ImageFormat]::Png)
     $split.Dispose()
 
-    $screens = Join-Path $repo 'Screenshot'
+    $screens = Join-Path $repo 'Screenshots\webstore'
     New-Item -ItemType Directory -Path $screens -Force | Out-Null
     Copy-Item -LiteralPath $store -Destination $screens -Force
 
     Write-Host "Popup measured at ${popupWidth}x$popupHeight."
-    Write-Host 'Wrote Misc/screenshot.png, Misc/screenshot640x400.jpeg and Screenshot/*.png.'
+    Write-Host 'Wrote Screenshots/readme/screenshot.png and Screenshots/webstore/*.png.'
 }
 finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

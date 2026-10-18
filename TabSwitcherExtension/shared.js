@@ -14,7 +14,8 @@ const DEFAULTS = {
     pauseMode: 'disable',
     defaultRefresh: { mode: 'switch', minutes: 5 },
     defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
-    // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display? }. A missing section means use the default.
+    // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, scheme? }. A missing section means use the default.
+    // scheme is only kept on site rules, for opening the site from the rules page.
     pageRules: {},
     autoStart: false,
     fullscreenOnStart: false,
@@ -71,16 +72,20 @@ function normalizeSettings(raw) {
         Object.entries(raw.refreshRules || {}).map(([key, refresh]) => [key, { refresh }])
     );
     const pageRules = {};
-    for (const [key, rule] of Object.entries(sourceRules)) {
-        if (!key.startsWith('host:') && !key.startsWith('page:')) continue;
+    for (const [rawKey, rule] of Object.entries(sourceRules)) {
+        if (!rawKey.startsWith('host:') && !rawKey.startsWith('page:')) continue;
         const refresh = normalizeRefresh(rule && rule.refresh, null);
         const scroll = normalizeScroll(rule && rule.scroll, null);
         const display = normalizeDisplay(rule && rule.display, null);
         if (!refresh && !scroll && !display) continue;
-        pageRules[key] = {};
-        if (refresh) pageRules[key].refresh = refresh;
-        if (scroll) pageRules[key].scroll = scroll;
-        if (display) pageRules[key].display = display;
+        const key = normalizeKey(rawKey);
+        const entry = {};
+        if (refresh) entry.refresh = refresh;
+        if (scroll) entry.scroll = scroll;
+        if (display) entry.display = display;
+        if (key.startsWith('host:') && ['http', 'https'].includes(rule.scheme)) entry.scheme = rule.scheme;
+        // Older versions could save two forms of the same key. The one already in normal form wins per section.
+        pageRules[key] = key === rawKey ? { ...pageRules[key], ...entry } : { ...entry, ...pageRules[key] };
     }
 
     return {
@@ -97,8 +102,13 @@ function normalizeSettings(raw) {
     };
 }
 
+// Keys drop a leading "www." and, on web pages, a trailing slash, so both forms of an address match.
+function normalizeKey(key) {
+    const bare = key.replace(/^(host:|page:https?:\/\/)www\.(?=[^/:]+\.)/i, '$1');
+    return /^page:https?:/i.test(bare) ? bare.replace(/\/+$/, '') : bare;
+}
+
 // Rule keys for a URL: "host:<host>" for the whole site, "page:<url without query or hash>" for one page.
-// The twin keys are the same URL with "www." added or removed, which counts as the same site.
 function ruleKeysForUrl(url) {
     let u;
     try {
@@ -107,12 +117,9 @@ function ruleKeysForUrl(url) {
         return null;
     }
     if (!['http:', 'https:', 'file:'].includes(u.protocol)) return null;
-    const twin = u.host.startsWith('www.') ? u.host.slice(4) : 'www.' + u.host;
     return {
-        site: u.host ? 'host:' + u.host : null,
-        page: 'page:' + u.protocol + '//' + u.host + u.pathname,
-        siteTwin: u.host ? 'host:' + twin : null,
-        pageTwin: u.host ? 'page:' + u.protocol + '//' + twin + u.pathname : null
+        site: u.host ? normalizeKey('host:' + u.host) : null,
+        page: normalizeKey('page:' + u.protocol + '//' + u.host + u.pathname)
     };
 }
 
@@ -120,7 +127,7 @@ function ruleKeysForUrl(url) {
 function ruleSectionFor(settings, url, section) {
     const keys = ruleKeysForUrl(url);
     if (!keys) return null;
-    for (const key of [keys.page, keys.pageTwin, keys.site, keys.siteTwin]) {
+    for (const key of [keys.page, keys.site]) {
         const rule = key && settings.pageRules[key];
         if (rule && rule[section]) return rule[section];
     }

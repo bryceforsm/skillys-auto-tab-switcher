@@ -12,6 +12,7 @@ let tabLoadedAt = {}; // tabId -> timestamp of the last completed load
 let loadTimesTimer = null;
 let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
+const popupWindows = new Set(); // windows with the popup open
 
 const ready = init().catch((err) => console.error("Skilly's Auto Tab Switcher failed to initialise", err));
 
@@ -24,10 +25,6 @@ async function init() {
     tabLoadedAt = session.tabLoadedAt || {};
 
     chrome.idle.setDetectionInterval(IDLE_SECONDS);
-    // Wakes the worker if Chrome suspends it, and drives background refreshes.
-    if (!(await chrome.alarms.get(HEARTBEAT_ALARM))) {
-        chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 0.5 });
-    }
     await refreshActivityState();
 
     // Session storage survives a worker restart but not a browser restart, so window IDs here are still valid.
@@ -49,7 +46,8 @@ async function init() {
         if (isPaused(w)) pause(w); else resume(w);
     }
     persistRunning();
-    if (windows.size) ensureTicker();
+    // Older versions kept the heartbeat alarm running even with no timer.
+    if (windows.size) ensureTicker(); else chrome.alarms.clear(HEARTBEAT_ALARM);
 }
 
 // ---------- Window state ----------
@@ -70,8 +68,12 @@ function newWindowState(windowId) {
     };
 }
 
+function popupPaused(w) {
+    return settings.pauseMode === 'hover' && popupWindows.has(w.windowId);
+}
+
 function isPaused(w) {
-    return activityPaused || w.hoverPaused || w.waitingTabId !== null;
+    return activityPaused || w.hoverPaused || popupPaused(w) || w.waitingTabId !== null;
 }
 
 function remainingMs(w) {
@@ -152,6 +154,7 @@ function forgetWindow(windowId) {
     if (!windows.size) {
         clearInterval(ticker);
         ticker = null;
+        chrome.alarms.clear(HEARTBEAT_ALARM);
     }
     return true;
 }
@@ -164,13 +167,20 @@ async function stopWindow(windowId) {
     for (const tab of tabs) {
         clearBadge(tab.id);
         sendToTab(tab.id, STOP_SCROLLING);
+        // Switching turned this off. Let Chrome unload the tab under memory pressure again.
+        if (!tab.autoDiscardable) chrome.tabs.update(tab.id, { autoDiscardable: true }).catch(() => {});
     }
 }
 
 // ---------- Countdown and switching ----------
 
 function ensureTicker() {
-    if (!ticker) ticker = setInterval(tick, 1000);
+    if (ticker) return;
+    ticker = setInterval(tick, 1000);
+    // Wakes the worker if Chrome suspends it, and drives background refreshes.
+    chrome.alarms.get(HEARTBEAT_ALARM).then((alarm) => {
+        if (!alarm) chrome.alarms.create(HEARTBEAT_ALARM, { periodInMinutes: 0.5 });
+    });
 }
 
 // The per-second API calls in here also keep the service worker alive while a timer runs.
@@ -219,7 +229,7 @@ async function switchTab(windowId, w) {
 
     if (shouldRefreshOnSwitch(tab)) {
         waitForLoad(w, tab.id);
-        await chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => finishWait(w, tab.id));
+        await chrome.tabs.reload(tab.id).catch(() => finishWait(w, tab.id));
     } else if (tab.status !== 'complete') {
         // Discarded or still-loading tabs: start the countdown once the page is ready.
         waitForLoad(w, tab.id);
@@ -277,7 +287,7 @@ async function backgroundRefresh() {
                 tabLoadedAt[tab.id] = now;
                 persistLoadTimes();
             } else if (now - tabLoadedAt[tab.id] >= rule.minutes * 60000) {
-                chrome.tabs.reload(tab.id, { bypassCache: true }).catch(() => {});
+                chrome.tabs.reload(tab.id).catch(() => {});
             }
         }
     }
@@ -311,9 +321,13 @@ function handleHover(isHovering, tab) {
     const w = windows.get(tab.windowId);
     if (!w) return;
     w.hoverPaused = !!isHovering;
-    if (w.hoverPaused) pause(w); else resume(w);
+    updatePause(w);
+}
+
+function updatePause(w) {
+    if (isPaused(w)) pause(w); else resume(w);
     persistRunning();
-    renderBadge(tab.windowId);
+    renderBadge(w.windowId);
 }
 
 function scrollSignature(s) {
@@ -327,6 +341,8 @@ function applySettingsChange(prev) {
         if (prev.pauseMode === 'hover' && settings.pauseMode !== 'hover') w.hoverPaused = false;
         if (displaySecondsFor(prev, w.activeUrl) !== displaySecondsFor(settings, w.activeUrl)) {
             restartCountdown(w);
+        } else if (isPaused(w)) {
+            pause(w);
         } else {
             resume(w);
         }
@@ -366,7 +382,8 @@ async function startScrolling(tabId, onArrival) {
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
-        pauseOnHover
+        pauseOnHover,
+        popupOpen: popupWindows.has(tab.windowId)
     };
     chrome.tabs.sendMessage(tabId, message).catch(async () => {
         // Tabs opened before install or update have no content script yet.
@@ -400,7 +417,7 @@ async function renderBadge(windowId) {
     if (activityPaused) {
         text = '...';
         color = PAUSE_COLOR;
-    } else if (w.hoverPaused) {
+    } else if (w.hoverPaused || popupPaused(w)) {
         text = '||';
         color = PAUSE_COLOR;
     } else if (w.waitingTabId !== null) {
@@ -426,6 +443,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ running: windows.has(msg.windowId) });
     });
     return true;
+});
+
+// The popup holds a port open while it is shown, so On hover also covers editing in the popup.
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== 'popup' || port.sender.tab) return;
+    let windowId = null;
+    const update = () => {
+        const w = windows.get(windowId);
+        if (!w) return;
+        updatePause(w);
+        if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'popupState', open: popupWindows.has(windowId) });
+    };
+    port.onMessage.addListener((msg) => {
+        windowId = msg.windowId;
+        ready.then(() => {
+            popupWindows.add(windowId);
+            update();
+        });
+    });
+    port.onDisconnect.addListener(() => {
+        ready.then(() => {
+            popupWindows.delete(windowId);
+            update();
+        });
+    });
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

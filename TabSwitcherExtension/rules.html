@@ -7,6 +7,10 @@
         [hidden] {
             display: none !important;
         }
+        /* Form controls default to Arial instead of the page font. */
+        button, input, select, textarea {
+            font-family: inherit;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #ffffff;
@@ -20,6 +24,7 @@
         }
         header {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid #e0e0e0;
@@ -30,6 +35,19 @@
             font-size: 20px;
             margin: 0;
             font-weight: 500;
+        }
+        #timerState {
+            margin-left: auto;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            white-space: nowrap;
+            background-color: #f1f3f4;
+            color: #5f6368;
+        }
+        #timerState.running {
+            background-color: #e6f4ea;
+            color: #137333;
         }
         .muted {
             color: #5f6368;
@@ -50,7 +68,25 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
-            align-items: start;
+        }
+        /* Same height for every row, so rows line up across the two columns. */
+        .settings .control-group {
+            min-height: 30px;
+        }
+        /* One full-width box whose rows flow into two columns that line up with the boxes above. */
+        fieldset.defaults {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 42px;
+        }
+        #defaultScrollOptions {
+            display: contents;
+        }
+        @media (max-width: 900px) {
+            fieldset.defaults {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
         @media (max-width: 900px) {
             .settings {
@@ -113,27 +149,27 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
-            table-layout: fixed;
         }
         th, td {
             text-align: left;
             padding: 8px;
             border-bottom: 1px solid #e8eaed;
-            vertical-align: top;
+            vertical-align: middle;
+            white-space: nowrap;
         }
         th {
             font-weight: 500;
             color: #5f6368;
+            white-space: nowrap;
         }
-        col.target { width: auto; }
-        col.type { width: 90px; }
-        col.display { width: 100px; }
-        col.refresh { width: 20%; }
-        col.scroll { width: 20%; }
-        col.actions { width: 160px; }
         td.target {
-            /* Long URLs wrap instead of forcing a horizontal scrollbar. */
-            overflow-wrap: anywhere;
+            /* Fills the leftover width, other columns shrink to their content. */
+            width: 100%;
+            max-width: 0;
+            /* Long URLs are cut off with an ellipsis. Hovering shows the full address. */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         td.target a {
             color: #1a73e8;
@@ -202,6 +238,11 @@
             border: 1px solid #f28b82;
             border-radius: 6px;
             font-size: 13px;
+        }
+        #version {
+            margin-top: 16px;
+            font-size: 12px;
+            text-align: center;
         }
         dialog {
             border: 1px solid #dadce0;
@@ -305,6 +346,14 @@
             .muted, th, label {
                 color: #9aa0a6;
             }
+            #timerState {
+                background-color: #292a2d;
+                color: #9aa0a6;
+            }
+            #timerState.running {
+                background-color: rgba(129, 201, 149, 0.16);
+                color: #81c995;
+            }
             #editTarget {
                 color: #8ab4f8;
             }
@@ -351,6 +400,7 @@
         <header>
             <img src="icons/icon48.png" alt="" width="32" height="32">
             <h1>Skilly's Auto Tab Switcher - Settings and Rules</h1>
+            <span id="timerState" hidden></span>
         </header>
         <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
         <h2 class="section">Settings</h2>
@@ -361,17 +411,13 @@
                     <label for="interval">Show Each Tab For (sec):</label>
                     <input type="number" id="interval" min="5" max="86400" value="30">
                 </div>
-                <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page).">
+                <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or the popup is open).">
                     <label for="pauseMode">Pause Timer:</label>
                     <select id="pauseMode">
                         <option value="disable">Disable</option>
                         <option value="activity">On activity</option>
                         <option value="hover">On hover</option>
                     </select>
-                </div>
-                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
-                    <label for="autoStart">Auto Start on Browser Launch:</label>
-                    <input type="checkbox" id="autoStart">
                 </div>
                 <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
@@ -380,6 +426,10 @@
             </fieldset>
             <fieldset>
                 <legend>General</legend>
+                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
+                    <label for="autoStart">Auto Start on Browser Launch:</label>
+                    <input type="checkbox" id="autoStart">
+                </div>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
                     <span class="inline">
@@ -396,21 +446,18 @@
                     </select>
                 </div>
             </fieldset>
-            <fieldset>
-                <legend>Default Refresh</legend>
+            <fieldset class="defaults">
+                <legend>Defaults for Pages Without a Rule</legend>
                 <div class="control-group" title="How pages without their own refresh rule are refreshed.">
-                    <label for="defaultMode">Refresh:</label>
+                    <label for="defaultMode">Default Refresh:</label>
                     <select id="defaultMode"></select>
                 </div>
                 <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
                     <label for="defaultMinutes" id="defaultMinutesLabel">If Older Than (min):</label>
                     <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
                 </div>
-            </fieldset>
-            <fieldset>
-                <legend>Default Auto Scroll</legend>
-                <div class="control-group" title="Automatically scroll down the page while the timer is running.">
-                    <label for="autoScroll">Auto Scroll:</label>
+                <div class="control-group" title="Automatically scroll down pages without their own scroll rule while the timer is running.">
+                    <label for="autoScroll">Default Auto Scroll:</label>
                     <select id="autoScroll">
                         <option value="off">Disable</option>
                         <option value="on">Enable</option>
@@ -445,9 +492,6 @@
             <button type="button" id="addRule" class="primary">Add Rule</button>
         </div>
         <table id="table">
-            <colgroup>
-                <col class="target"><col class="type"><col class="display"><col class="refresh"><col class="scroll"><col class="actions">
-            </colgroup>
             <thead>
                 <tr>
                     <th><button type="button" class="sort" data-sort="target">Applies To</button></th>
@@ -468,6 +512,7 @@
             </div>
             <button type="button" id="resetAll" class="danger">Reset to Defaults</button>
         </section>
+        <footer id="version" class="muted"></footer>
     </main>
 
     <dialog id="editor">

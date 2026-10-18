@@ -12,7 +12,7 @@
             'host:status.example.com': { display: { seconds: 15 }, scroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 } },
             'host:homeassistant.local:8123': { display: { seconds: 45 }, refresh: { mode: 'never', minutes: 5 } },
             'page:https://en.wikipedia.org/wiki/Main_Page': { scroll: { autoScroll: true, scrollToTop: true, scrollDelay: 3, scrollSpeed: 35 } },
-            'host:www.example.com': { display: { seconds: 120 } },
+            'host:example.com': { display: { seconds: 120 } },
             'page:https://sales.example.com/reports/weekly': { display: { seconds: 90 }, refresh: { mode: 'stale', minutes: 30 } }
         },
         autoStart: true,
@@ -37,7 +37,7 @@
         },
         windows: { getCurrent: async () => ({ id: 1 }) },
         tabs: { query: async () => [{ id: 1, url: 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { sendMessage: async () => ({ running: !outOfBox }), openOptionsPage() {} }
+        runtime: { getManifest: () => ({ version: '2.1.1' }), sendMessage: async () => ({ running: !outOfBox }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {

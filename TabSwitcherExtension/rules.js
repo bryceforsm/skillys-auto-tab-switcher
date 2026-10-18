@@ -4,13 +4,17 @@ const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
+let windowId = null;
 let editingKey = null;
+let duplicateOf = null; // key of the rule being copied, so saving it unchanged is caught
 let sortColumn = 'target';
 let sortDirection = 1;
 
 init();
 
 async function init() {
+    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
+
     for (const [value, label] of Object.entries(REFRESH_MODES)) {
         $('editRefresh').add(new Option(label, value));
         $('defaultMode').add(new Option(label, value));
@@ -48,11 +52,22 @@ async function init() {
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
 
+    windowId = (await chrome.windows.getCurrent()).id;
     // Keep the table current if the popup saves while this page is open.
     chrome.storage.onChanged.addListener((changes, area) => {
         if (area === 'local') load();
+        else if (area === 'session' && changes.running) showTimerState();
     });
     await load();
+    showTimerState();
+}
+
+async function showTimerState() {
+    const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId });
+    const running = !!response?.running;
+    $('timerState').textContent = running ? 'Timer running in this window' : 'Timer stopped in this window';
+    $('timerState').classList.toggle('running', running);
+    $('timerState').hidden = false;
 }
 
 async function load() {
@@ -132,17 +147,25 @@ function plural(n, word) {
     return `${n} ${n === 1 ? word : word + 's'}`;
 }
 
-function siteHomeUrl(host) {
-    const hostname = host.replace(/:\d+$/, '');
-    // Site rules don't store a scheme. Local names and IPs rarely have certificates.
+// Site rules saved before the scheme was stored fall back to a guess.
+function ruleUrl(key, rule) {
+    const target = key.slice(5);
+    if (key.startsWith('page:')) return target;
+    const hostname = target.replace(/:\d+$/, '');
     const local = hostname === 'localhost' || !hostname.includes('.') || /^[\d.]+$/.test(hostname) || hostname.startsWith('[');
-    return (local ? 'http://' : 'https://') + host + '/';
+    return (rule?.scheme || (local ? 'http' : 'https')) + '://' + target;
+}
+
+// Typed URLs default to https, so only other schemes are shown.
+function displayTarget(key, rule) {
+    return ruleUrl(key, rule).replace(/^https:\/\//i, '');
 }
 
 function targetCell(key) {
     const td = cell('', 'target');
-    const text = key.slice(5);
-    const url = key.startsWith('host:') ? siteHomeUrl(text) : text;
+    const url = ruleUrl(key, settings.pageRules[key]);
+    const text = displayTarget(key, settings.pageRules[key]);
+    td.title = text;
     // Only link URLs the extension itself would produce, never arbitrary schemes from storage.
     if (!ruleKeysForUrl(url)) {
         td.textContent = text;
@@ -152,7 +175,7 @@ function targetCell(key) {
     a.href = url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.title = 'Open in a new tab';
+    a.title = `${url}\nClick to open in a new tab`;
     a.textContent = text;
     // Extension pages cannot open file:// links directly, but chrome.tabs.create can.
     a.addEventListener('click', (event) => {
@@ -171,8 +194,8 @@ function sortValue(key, column) {
         case 'display': return rule.display ? rule.display.seconds : null;
         case 'refresh': return rule.refresh ? describeRefresh(rule.refresh) : null;
         case 'scroll': return rule.scroll ? describeScroll(rule.scroll) : null;
-        // The scheme and "www." are left out so a site and its pages sort together.
-        default: return key.slice(5).replace(/^[a-z]+:\/\//i, '').replace(/^www\./i, '');
+        // The scheme is left out so a site and its pages sort together.
+        default: return key.slice(5).replace(/^[a-z]+:\/\//i, '');
     }
 }
 
@@ -199,7 +222,7 @@ function sortKeys(keys) {
 function render() {
     const allKeys = Object.keys(settings.pageRules);
     const filter = $('filter').value.trim().toLowerCase();
-    const keys = sortKeys(allKeys.filter((key) => key.slice(5).toLowerCase().includes(filter)));
+    const keys = sortKeys(allKeys.filter((key) => displayTarget(key, settings.pageRules[key]).toLowerCase().includes(filter)));
 
     for (const header of document.querySelectorAll('button.sort')) {
         const th = header.parentElement;
@@ -225,6 +248,8 @@ function render() {
         actions.append(
             button('Edit', '', () => openEditor(key)),
             ' ',
+            button('Duplicate', '', () => openEditor(key, true)),
+            ' ',
             button('Remove', 'danger', () => removeRule(key))
         );
         tr.append(
@@ -242,13 +267,15 @@ function render() {
 
 // ---------- Editing ----------
 
-function openEditor(key) {
+// With duplicate, the rule's settings prefill a new rule instead of editing it.
+function openEditor(key, duplicate = false) {
     const rule = key ? settings.pageRules[key] : {};
     if (!rule) return;
-    editingKey = key;
-    $('editTitle').textContent = key ? 'Edit Rule' : 'Add Rule';
+    editingKey = duplicate ? null : key;
+    duplicateOf = duplicate ? key : null;
+    $('editTitle').textContent = duplicate ? 'Duplicate Rule' : key ? 'Edit Rule' : 'Add Rule';
     $('editType').value = key && key.startsWith('page:') ? 'page' : 'host';
-    $('editUrl').value = key ? key.slice(5) : '';
+    $('editUrl').value = key ? displayTarget(key, rule) : '';
     validateUrl();
 
     $('editRefresh').value = rule.refresh ? rule.refresh.mode : 'default';
@@ -266,6 +293,7 @@ function openEditor(key) {
 
     updateEditorVisibility();
     $('editor').showModal();
+    if (duplicate) $('editUrl').select();
 }
 
 // Returns { key } for a valid entry, or { error } explaining what is wrong.
@@ -290,24 +318,29 @@ function parseTarget(text, isSite) {
     const keys = ruleKeysForUrl(url.href);
     const key = isSite ? keys.site : keys.page;
     if (!key) return { error: 'File URLs have no site. Use a page rule instead.' };
-    const twin = isSite ? keys.siteTwin : keys.pageTwin;
+    // Site keys carry no scheme, so it is kept on the rule for opening the site later.
+    const scheme = isSite ? url.protocol.slice(0, -1) : undefined;
     const host = url.hostname;
     if (host && !host.includes('.') && !host.startsWith('[') && host !== 'localhost') {
-        return { key, twin, warning: ` (no dot, so this only matches a computer on your local network. Did you mean ${host}.com?)` };
+        return { key, scheme, warning: ` (no dot, so this only matches a computer on your local network. Did you mean ${host}.com?)` };
     }
-    return { key, twin };
+    return { key, scheme };
 }
 
 function validateUrl() {
     const isSite = $('editType').value === 'host';
     $('editUrlLabel').textContent = isSite ? 'Site:' : 'Page URL:';
     const result = parseTarget($('editUrl').value, isSite);
-    const { key, error, warning } = result;
+    if (result.key && result.key === duplicateOf) {
+        result.error = 'Change the site or page URL. This is the rule being copied.';
+        delete result.key;
+    }
+    const { key, error, warning, scheme } = result;
     $('editUrl').setCustomValidity(error || '');
     // An empty box on a new rule is not a mistake yet, so show the hint without the error color.
     $('editTarget').classList.toggle('error', !!error && $('editUrl').value.trim() !== '');
     $('editTarget').classList.toggle('warning', !!warning);
-    $('editTarget').textContent = error || (isSite ? 'Whole site: ' : 'Page: ') + key.slice(5) + (warning || '');
+    $('editTarget').textContent = error || (isSite ? 'Whole site: ' : 'Page: ') + displayTarget(key, { scheme }) + (warning || '');
     return result;
 }
 
@@ -329,7 +362,7 @@ async function updateRules(change, extra = {}) {
 async function saveEdit(event) {
     event.preventDefault();
     const oldKey = editingKey;
-    const { key, twin } = validateUrl();
+    const { key, scheme } = validateUrl();
     if (!key) return;
     const rule = {};
     const mode = $('editRefresh').value;
@@ -353,16 +386,9 @@ async function saveEdit(event) {
         $('editRefresh').reportValidity();
         return;
     }
-    if (key !== oldKey && twin && twin !== oldKey && settings.pageRules[twin]) {
-        const what = key.startsWith('host:') ? 'site' : 'page';
-        if (confirm(`A rule for ${twin.slice(5)} already covers this ${what}. Edit that rule instead?`)) {
-            $('editor').close();
-            openEditor(twin);
-        }
-        return;
-    }
+    if (scheme) rule.scheme = scheme;
     if (key !== oldKey && settings.pageRules[key]
-        && !confirm(`A rule for ${key.slice(5)} already exists. Replace it?`)) return;
+        && !confirm(`A rule for ${displayTarget(key, settings.pageRules[key])} already exists. Replace it?`)) return;
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
         if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;
