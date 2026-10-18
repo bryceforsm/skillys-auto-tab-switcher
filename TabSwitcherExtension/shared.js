@@ -144,6 +144,11 @@ function describeDisplay(seconds) {
     return seconds >= 60 && seconds % 60 === 0 ? `${seconds / 60} min` : `${seconds} sec`;
 }
 
+// Label for the minutes box under a Refresh dropdown, which only shows for these two modes.
+function refreshMinutesLabel(mode) {
+    return mode === 'background' ? 'Refresh Every (min):' : 'If Older Than (min):';
+}
+
 function describeRefresh(rule) {
     switch (rule.mode) {
         case 'stale': return `On switch, if older than ${rule.minutes} min`;

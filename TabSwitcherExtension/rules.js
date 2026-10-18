@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['autoStart', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -69,6 +69,8 @@ function setField(id, prop, value) {
 }
 
 function fillGeneral() {
+    setField('interval', 'value', settings.switchInterval);
+    setField('pauseMode', 'value', settings.pauseMode);
     setField('autoStart', 'checked', settings.autoStart);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
@@ -86,12 +88,15 @@ function fillGeneral() {
 
 function updateGeneralVisibility() {
     $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
+    $('defaultMinutesLabel').textContent = refreshMinutesLabel($('defaultMode').value);
     $('defaultScrollOptions').hidden = $('autoScroll').value !== 'on';
 }
 
 async function saveGeneral() {
     updateGeneralVisibility();
     await chrome.storage.local.set({
+        switchInterval: clampInt($('interval').value, 5, 86400, 30),
+        pauseMode: $('pauseMode').value,
         autoStart: $('autoStart').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
@@ -309,6 +314,7 @@ function validateUrl() {
 function updateEditorVisibility() {
     $('editRefresh').setCustomValidity('');
     $('editMinutesWrap').hidden = !MINUTE_MODES.includes($('editRefresh').value);
+    $('editMinutesLabel').textContent = refreshMinutesLabel($('editRefresh').value);
     $('editDisplayWrap').hidden = $('editDisplay').value !== 'custom';
     $('editScrollOptions').hidden = $('editScroll').value !== 'on';
 }

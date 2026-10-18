@@ -37,9 +37,11 @@ This extension automatically switches between your open tabs at an interval you 
 
 2.  **More Settings and Rules:**
     - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Changes on this page save as soon as you make them.
-    - **General:**
+    - **Timer:**
+        - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
         - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).
         - **Full Screen on Timer Start** puts the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
+    - **General:**
         - **Countdown Badge** shows the seconds until the next switch on the extension icon, in the color you pick.
         - **Theme** chooses **System** (default, follows your OS light or dark setting), **Light**, or **Dark**.
     - **Default Refresh** sets how pages without their own rule are refreshed:

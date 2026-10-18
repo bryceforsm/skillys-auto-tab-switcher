@@ -176,6 +176,7 @@ function updateVisibility() {
     $('ruleFields').hidden = !customizing;
     $('customize').hidden = customizing;
     $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
+    $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value);
     $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
     $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
 }

@@ -48,7 +48,7 @@
         }
         .settings {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
             align-items: start;
         }
@@ -356,7 +356,19 @@
         <h2 class="section">Settings</h2>
         <section class="settings">
             <fieldset>
-                <legend>General</legend>
+                <legend>Timer</legend>
+                <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
+                    <label for="interval">Show Each Tab For (sec):</label>
+                    <input type="number" id="interval" min="5" max="86400" value="30">
+                </div>
+                <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page).">
+                    <label for="pauseMode">Pause Timer:</label>
+                    <select id="pauseMode">
+                        <option value="disable">Disable</option>
+                        <option value="activity">On activity</option>
+                        <option value="hover">On hover</option>
+                    </select>
+                </div>
                 <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
                     <label for="autoStart">Auto Start on Browser Launch:</label>
                     <input type="checkbox" id="autoStart">
@@ -365,6 +377,9 @@
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
                     <input type="checkbox" id="fullscreenOnStart">
                 </div>
+            </fieldset>
+            <fieldset>
+                <legend>General</legend>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
                     <span class="inline">
@@ -388,7 +403,7 @@
                     <select id="defaultMode"></select>
                 </div>
                 <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
-                    <label for="defaultMinutes">Minutes:</label>
+                    <label for="defaultMinutes" id="defaultMinutesLabel">If Older Than (min):</label>
                     <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
                 </div>
             </fieldset>
@@ -490,7 +505,7 @@
                 </select>
             </div>
             <div id="editMinutesWrap" class="control-group">
-                <label for="editMinutes">Minutes:</label>
+                <label for="editMinutes" id="editMinutesLabel">If Older Than (min):</label>
                 <input type="number" id="editMinutes" min="1" max="1440" value="5">
             </div>
             <div class="control-group">
