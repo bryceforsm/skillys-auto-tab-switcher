@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -96,6 +96,7 @@ function fillGeneral() {
     setField('interval', 'value', settings.switchInterval);
     setField('pauseMode', 'value', settings.pauseMode);
     setField('autoStart', 'checked', settings.autoStart);
+    setField('skipPinned', 'checked', settings.skipPinned);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
@@ -122,6 +123,7 @@ async function saveGeneral() {
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
         autoStart: $('autoStart').checked,
+        skipPinned: $('skipPinned').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
