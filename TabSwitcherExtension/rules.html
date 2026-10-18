@@ -7,6 +7,10 @@
         [hidden] {
             display: none !important;
         }
+        /* Form controls default to Arial instead of the page font. */
+        button, input, select, textarea {
+            font-family: inherit;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #ffffff;
@@ -64,7 +68,25 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
-            align-items: start;
+        }
+        /* Same height for every row, so rows line up across the two columns. */
+        .settings .control-group {
+            min-height: 30px;
+        }
+        /* One full-width box whose rows flow into two columns that line up with the boxes above. */
+        fieldset.defaults {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 42px;
+        }
+        #defaultScrollOptions {
+            display: contents;
+        }
+        @media (max-width: 900px) {
+            fieldset.defaults {
+                grid-template-columns: minmax(0, 1fr);
+            }
         }
         @media (max-width: 900px) {
             .settings {
@@ -392,10 +414,6 @@
                         <option value="hover">On hover</option>
                     </select>
                 </div>
-                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
-                    <label for="autoStart">Auto Start on Browser Launch:</label>
-                    <input type="checkbox" id="autoStart">
-                </div>
                 <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
                     <input type="checkbox" id="fullscreenOnStart">
@@ -403,6 +421,10 @@
             </fieldset>
             <fieldset>
                 <legend>General</legend>
+                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
+                    <label for="autoStart">Auto Start on Browser Launch:</label>
+                    <input type="checkbox" id="autoStart">
+                </div>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
                     <span class="inline">
@@ -419,21 +441,18 @@
                     </select>
                 </div>
             </fieldset>
-            <fieldset>
-                <legend>Default Refresh</legend>
+            <fieldset class="defaults">
+                <legend>Defaults for Pages Without a Rule</legend>
                 <div class="control-group" title="How pages without their own refresh rule are refreshed.">
-                    <label for="defaultMode">Refresh:</label>
+                    <label for="defaultMode">Default Refresh:</label>
                     <select id="defaultMode"></select>
                 </div>
                 <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
                     <label for="defaultMinutes" id="defaultMinutesLabel">If Older Than (min):</label>
                     <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
                 </div>
-            </fieldset>
-            <fieldset>
-                <legend>Default Auto Scroll</legend>
-                <div class="control-group" title="Automatically scroll down the page while the timer is running.">
-                    <label for="autoScroll">Auto Scroll:</label>
+                <div class="control-group" title="Automatically scroll down pages without their own scroll rule while the timer is running.">
+                    <label for="autoScroll">Default Auto Scroll:</label>
                     <select id="autoScroll">
                         <option value="off">Disable</option>
                         <option value="on">Enable</option>

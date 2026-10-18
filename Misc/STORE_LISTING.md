@@ -110,5 +110,5 @@ Username and password: leave blank (no account or login is required).
 Additional instructions (500 characters max):
 
 ```text
-No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Pause Timer: On hover pauses while the mouse is over the page. Current Tab, Customize creates per-page rules. More Settings and Rules holds defaults (Auto Scroll: Enable scrolls long pages) and all rules. Stop Timer ends it.
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Pause Timer: On hover pauses while the mouse is over the page. Current Tab, Customize creates per-page rules. More Settings and Rules holds defaults (Auto Scroll: Enable scrolls long pages) and all rules. Stop Timer ends it.
 ```

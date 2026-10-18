@@ -7,6 +7,10 @@
         [hidden] {
             display: none !important;
         }
+        /* Form controls default to Arial instead of the page font. */
+        button, input, select {
+            font-family: inherit;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             /* Chrome caps popups at 800x600, so the layout is wide rather than tall. */
@@ -43,15 +47,6 @@
             align-items: flex-end;
             justify-content: space-between;
             gap: 8px;
-        }
-        .footer {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-        .footer #saveAll {
-            flex: 1;
         }
         label {
             font-size: 14px;
@@ -106,33 +101,6 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        #saveAll {
-            background-color: #f1f3f4;
-            color: #3c4043;
-            border: 1px solid #dadce0;
-        }
-        #saveAll:hover {
-            background-color: #e8eaed;
-        }
-        #saveAll.unsaved {
-            background-color: #e37400;
-            color: white;
-            border: 1px solid #e37400;
-            font-weight: 600;
-            animation: unsaved-pulse 1.6s ease-in-out infinite;
-        }
-        #saveAll.unsaved:hover {
-            background-color: #c26401;
-        }
-        @keyframes unsaved-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(227, 116, 0, 0.7); }
-            50% { box-shadow: 0 0 0 4px rgba(227, 116, 0, 0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            #saveAll.unsaved {
-                animation: none;
-            }
-        }
         #toggleTimer {
             background-color: #1e8e3e;
             color: white;
@@ -163,14 +131,16 @@
             color: #1557b0;
         }
         #status {
-            margin-top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
             font-size: 12px;
             color: #188038;
-            text-align: center;
         }
-        #status.warning {
-            color: #b06000;
-            font-weight: 600;
+        #status .link-button {
+            padding: 0 5px;
+            font-size: 12px;
         }
         .header-container {
             display: flex;
@@ -208,13 +178,55 @@
             text-align: center;
             font-style: italic;
         }
+        .page-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
         #pageLabel {
             font-size: 12px;
             color: #1a73e8;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 8px;
+            min-width: 0;
+        }
+        .rule-chips {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .rule-chip {
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            padding: 1px 8px;
+            border: 1px solid #dadce0;
+            border-radius: 10px;
+            color: #5f6368;
+            white-space: nowrap;
+        }
+        .rule-chip.active {
+            background-color: #e8f0fe;
+            border-color: #1a73e8;
+            color: #1967d2;
+            font-weight: 600;
+        }
+        .rule-chip .link-button {
+            margin-left: 6px;
+            padding: 0 0 0 6px;
+            border-left: 1px solid currentColor;
+            border-radius: 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: inherit;
+            text-decoration: none;
+        }
+        .rule-chip .link-button:hover {
+            color: inherit;
+            text-decoration: underline;
         }
         #effectiveRule {
             font-size: 11px;
@@ -251,24 +263,17 @@
             fieldset, .header-container {
                 border-color: #5f6368;
             }
-            #saveAll {
-                background-color: #292a2d;
-                color: #e8eaed;
-                border: 1px solid #5f6368;
+            .rule-chip {
+                border-color: #5f6368;
+                color: #9aa0a6;
             }
-            #saveAll:hover {
-                background-color: #3c4043;
+            .rule-chip.active {
+                background-color: #263753;
+                border-color: #8ab4f8;
+                color: #8ab4f8;
             }
-            #saveAll.unsaved {
-                background-color: #fbbc04;
-                color: #202124;
-                border-color: #fbbc04;
-            }
-            #saveAll.unsaved:hover {
-                background-color: #fdd663;
-            }
-            #status.warning {
-                color: #fdd663;
+            #status {
+                color: #81c995;
             }
             .link-button {
                 color: #8ab4f8;
@@ -291,7 +296,7 @@
     <div class="basics">
     <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
         <label for="interval">Show Each Tab For (sec):</label>
-        <input type="number" id="interval" min="5" value="30">
+        <input type="number" id="interval" min="5" max="86400" value="30">
     </div>
     <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or this popup is open).">
         <label for="pauseMode">Pause Timer:</label>
@@ -305,7 +310,19 @@
     <fieldset>
         <legend>Current Tab</legend>
         <div id="pageRuleEditor">
-            <div id="pageLabel"></div>
+            <div class="page-row">
+                <div id="pageLabel"></div>
+                <div class="rule-chips">
+                    <span id="pageChip" class="rule-chip" title="Whether this exact page has its own rule. It beats the site rule.">
+                        <span id="pageChipText">No page rule</span>
+                        <button id="pageReset" class="link-button" title="Remove this page's rule so it uses the site rule or the defaults." hidden>Reset</button>
+                    </span>
+                    <span id="siteChip" class="rule-chip" title="Whether this whole site has its own rule.">
+                        <span id="siteChipText">No site rule</span>
+                        <button id="siteReset" class="link-button" title="Remove the whole-site rule so this site uses the defaults." hidden>Reset</button>
+                    </span>
+                </div>
+            </div>
             <div id="ruleFields" class="rule-columns">
             <div>
             <div class="control-group" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
@@ -353,7 +370,7 @@
                 </div>
                 <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
                     <label for="ruleScrollDelay">Scroll Delay (sec):</label>
-                    <input type="number" id="ruleScrollDelay" min="0" value="5">
+                    <input type="number" id="ruleScrollDelay" min="0" max="3600" value="5">
                 </div>
                 <div class="control-group" title="How fast this page scrolls.">
                     <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
@@ -373,10 +390,7 @@
         <span>Saved Rules: <span id="ruleCount">0</span></span>
         <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
     </div>
-    <div class="footer">
-        <button id="saveAll">Save Settings</button>
-    </div>
-    <div id="status"></div>
+    <div id="status"><span id="statusText"></span><button id="undo" class="link-button" hidden>Undo</button></div>
     <script src="shared.js"></script>
     <script src="popup.js"></script>
 </body>
