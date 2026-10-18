@@ -41,6 +41,10 @@
     };
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Headless capture can land mid-transition (Stop Timer still fading from green), so skip them.
+        const still = document.createElement('style');
+        still.textContent = '*, *::before, *::after { transition: none !important; }';
+        document.head.append(still);
         // Centres the popup on a backdrop for the 1280x800 store screenshots.
         if (params.get('frame')) {
             const dark = store.theme === 'dark';

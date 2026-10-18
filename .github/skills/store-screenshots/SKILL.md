@@ -37,3 +37,4 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 - `msedge --dump-dom` output isn't captured by PowerShell, so the popup height is measured from a screenshot instead.
 - `Start-Process` joins arguments with spaces, so paths with spaces (the repo is under `My Drive`) need embedded quotes. The script renders into a temp folder for that reason.
 - Changing only the `#hash` of a `file://` URL doesn't reload the page. Use query parameters.
+- Headless capture can land mid CSS transition (for example a green Stop Timer button). The mock turns transitions off, so a wrong color in a shot is a real bug.

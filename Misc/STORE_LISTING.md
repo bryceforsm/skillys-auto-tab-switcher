@@ -28,7 +28,7 @@ FEATURES
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
 - Full screen on start: go full screen when the timer starts and restore the window when it stops.
 - Countdown badge: see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
-- Rules manager: view, filter, add, edit and remove all saved rules on one page, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
+- Settings and rules page: set defaults, auto start, full screen, badge and theme in one place, then view, filter, add, edit and remove every saved rule, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - Light, dark or system theme.
 
 GREAT FOR
@@ -110,5 +110,5 @@ Username and password: leave blank (no account or login is required).
 Additional instructions (500 characters max):
 
 ```text
-No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Auto Scroll: Enable scrolls long pages. Pause Timer: On hover pauses while the mouse is over the page. Current Tab creates per-site or per-page refresh and scroll rules, listed under Manage Rules. Stop Timer ends rotation.
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, click Save Settings, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Pause Timer: On hover pauses while the mouse is over the page. Current Tab, Customize creates per-page rules. More Settings and Rules holds defaults (Auto Scroll: Enable scrolls long pages) and all rules. Stop Timer ends it.
 ```

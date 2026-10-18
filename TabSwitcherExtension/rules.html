@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Skilly's Auto Tab Switcher - Saved Rules</title>
+    <title>Skilly's Auto Tab Switcher - Settings and Rules</title>
     <style>
         [hidden] {
             display: none !important;
@@ -34,9 +34,53 @@
         .muted {
             color: #5f6368;
         }
-        #defaults {
+        .intro {
             font-size: 13px;
-            margin: 0 0 12px 0;
+            margin: 0 0 16px 0;
+        }
+        h2.section {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 0 10px 0;
+        }
+        h2.section.rules {
+            margin-top: 24px;
+        }
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .settings {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        fieldset {
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 0;
+            min-width: 0;
+        }
+        legend {
+            font-size: 14px;
+            font-weight: 500;
+            padding: 0 5px;
+        }
+        .inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="color"] {
+            border: none;
+            width: 32px;
+            height: 24px;
+            padding: 0;
+            background: none;
+            cursor: pointer;
         }
         .toolbar {
             display: flex;
@@ -255,7 +299,7 @@
                 background-color: #202124;
                 color: #e8eaed;
             }
-            header, th, td, dialog {
+            header, th, td, dialog, fieldset {
                 border-color: #3c4043;
             }
             .muted, th, label {
@@ -306,9 +350,74 @@
     <main>
         <header>
             <img src="icons/icon48.png" alt="" width="32" height="32">
-            <h1>Skilly's Auto Tab Switcher - Saved Rules</h1>
+            <h1>Skilly's Auto Tab Switcher - Settings and Rules</h1>
         </header>
-        <p id="defaults" class="muted"></p>
+        <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
+        <h2 class="section">Settings</h2>
+        <section class="settings">
+            <fieldset>
+                <legend>General</legend>
+                <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
+                    <label for="autoStart">Auto Start on Browser Launch:</label>
+                    <input type="checkbox" id="autoStart">
+                </div>
+                <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
+                    <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
+                    <input type="checkbox" id="fullscreenOnStart">
+                </div>
+                <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
+                    <label for="badgeVisible">Countdown Badge:</label>
+                    <span class="inline">
+                        <input type="color" id="badgeColor" aria-label="Badge color">
+                        <input type="checkbox" id="badgeVisible">
+                    </span>
+                </div>
+                <div class="control-group" title="Color theme for the extension pages. System follows your OS setting.">
+                    <label for="theme">Theme:</label>
+                    <select id="theme">
+                        <option value="system">System</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Default Refresh</legend>
+                <div class="control-group" title="How pages without their own refresh rule are refreshed.">
+                    <label for="defaultMode">Refresh:</label>
+                    <select id="defaultMode"></select>
+                </div>
+                <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
+                    <label for="defaultMinutes">Minutes:</label>
+                    <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Default Auto Scroll</legend>
+                <div class="control-group" title="Automatically scroll down the page while the timer is running.">
+                    <label for="autoScroll">Auto Scroll:</label>
+                    <select id="autoScroll">
+                        <option value="off">Disable</option>
+                        <option value="on">Enable</option>
+                    </select>
+                </div>
+                <div id="defaultScrollOptions">
+                    <div class="control-group" title="Scroll back to the top of the page when switching to a new tab.">
+                        <label for="scrollToTop">Scroll to Top on Switch:</label>
+                        <input type="checkbox" id="scrollToTop">
+                    </div>
+                    <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
+                        <label for="scrollDelay">Scroll Delay (sec):</label>
+                        <input type="number" id="scrollDelay" min="0" max="3600" value="5">
+                    </div>
+                    <div class="control-group" title="Adjust how fast the page scrolls.">
+                        <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
+                        <input type="range" id="scrollSpeed" min="1" max="100" value="20">
+                    </div>
+                </div>
+            </fieldset>
+        </section>
+        <h2 class="section rules">Rules</h2>
         <div class="toolbar">
             <input type="search" id="filter" placeholder="Filter by site or URL" aria-label="Filter rules">
             <span id="count" class="muted"></span>

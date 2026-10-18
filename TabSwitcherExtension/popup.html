@@ -28,12 +28,21 @@
             justify-content: space-between;
             gap: 8px;
         }
-        .columns {
+        .basics, .rule-columns {
             display: grid;
             /* minmax(0, ...) stops long unbreakable text (URLs) from widening a column. */
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 16px;
+            column-gap: 16px;
             align-items: start;
+        }
+        .basics {
+            margin-bottom: 4px;
+        }
+        .summary-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 8px;
         }
         .footer {
             display: flex;
@@ -86,14 +95,6 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
-        }
-        input[type="color"] {
-            border: none;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            background: none;
-            padding: 0;
         }
         button {
             width: 100%;
@@ -218,7 +219,6 @@
         #effectiveRule {
             font-size: 11px;
             color: #5f6368;
-            margin: -2px 0 2px 0;
             white-space: pre-line;
         }
         .rules-row {
@@ -277,15 +277,6 @@
                 color: #aecbfa;
             }
         }
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        #theme {
-            width: auto;
-            font-size: 13px;
-        }
     </style>
     <script src="theme.js"></script>
 </head>
@@ -295,18 +286,9 @@
             <img src="icons/icon128.png" alt="Logo" width="32" height="32">
             <h2>Skilly's Auto Tab Switcher</h2>
         </div>
-        <div class="header-actions">
-            <label for="theme" title="Color theme for the extension pages. System follows your OS setting.">Theme:</label>
-            <select id="theme" title="Color theme for the extension pages. System follows your OS setting.">
-                <option value="system">System</option>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-            </select>
-            <button id="toggleTimer">Start Timer</button>
-        </div>
+        <button id="toggleTimer">Start Timer</button>
     </div>
-    <div class="columns">
-    <div>
+    <div class="basics">
     <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
         <label for="interval">Show Each Tab For (sec):</label>
         <input type="number" id="interval" min="5" value="30">
@@ -319,53 +301,13 @@
             <option value="hover">On hover</option>
         </select>
     </div>
-    <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
-        <label for="autoStart">Auto Start on Browser Launch:</label>
-        <input type="checkbox" id="autoStart">
     </div>
-    <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
-        <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
-        <input type="checkbox" id="fullscreenOnStart">
-    </div>
-    <fieldset>
-        <legend>Default Refresh</legend>
-        <div class="control-group" title="How pages without their own refresh rule are refreshed.">
-            <label for="defaultMode">Refresh:</label>
-            <select id="defaultMode"></select>
-        </div>
-        <div id="defaultMinutesWrap" class="control-group" title="Age limit or refresh period for the default mode, in minutes.">
-            <label for="defaultMinutes">Minutes:</label>
-            <input type="number" id="defaultMinutes" min="1" max="1440" value="5">
-        </div>
-    </fieldset>
-    <fieldset>
-        <legend>Default Auto Scroll</legend>
-        <div class="control-group" title="Automatically scroll down the page while the timer is running.">
-            <label for="autoScroll">Auto Scroll:</label>
-            <select id="autoScroll">
-                <option value="off">Disable</option>
-                <option value="on">Enable</option>
-            </select>
-        </div>
-        <div class="control-group" title="Scroll back to the top of the page when switching to a new tab.">
-            <label for="scrollToTop">Scroll to Top on Switch:</label>
-            <input type="checkbox" id="scrollToTop">
-        </div>
-        <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
-            <label for="scrollDelay">Scroll Delay (sec):</label>
-            <input type="number" id="scrollDelay" min="0" value="5">
-        </div>
-        <div class="control-group" title="Adjust how fast the page scrolls.">
-            <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
-            <input type="range" id="scrollSpeed" min="1" max="100" value="20">
-        </div>
-    </fieldset>
-    </div>
-    <div>
     <fieldset>
         <legend>Current Tab</legend>
         <div id="pageRuleEditor">
             <div id="pageLabel"></div>
+            <div id="ruleFields" class="rule-columns">
+            <div>
             <div class="control-group" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
                 <label for="ruleScope">Apply To:</label>
                 <select id="ruleScope">
@@ -394,6 +336,8 @@
                 <label for="ruleMinutes">Minutes:</label>
                 <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
             </div>
+            </div>
+            <div>
             <div class="control-group" title="Whether this site or page auto scrolls.">
                 <label for="ruleScrollMode">Auto Scroll:</label>
                 <select id="ruleScrollMode">
@@ -416,24 +360,21 @@
                     <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
                 </div>
             </div>
-            <div id="effectiveRule"></div>
+            </div>
+            </div>
+            <div class="summary-row">
+                <div id="effectiveRule"></div>
+                <button id="customize" class="link-button" title="Give this site or page its own Show For, Refresh or Auto Scroll.">Customize</button>
+            </div>
         </div>
         <div id="pageRuleUnavailable" class="note" hidden>Page rules are not available for this tab.</div>
     </fieldset>
     <div class="rules-row">
         <span>Saved Rules: <span id="ruleCount">0</span></span>
-        <button id="manageRules" class="link-button" title="View, edit and remove all saved site and page rules in a full tab.">Manage Rules</button>
-    </div>
-    </div>
-    </div>
-    <div class="note">
-        Settings apply to all windows. Page rules apply wherever that page is open.
+        <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
     </div>
     <div class="footer">
         <button id="saveAll">Save Settings</button>
-        <label for="badgeColor" title="Change the color of the countdown badge on the extension icon.">Badge:</label>
-        <input type="color" id="badgeColor" title="Change the color of the countdown badge on the extension icon.">
-        <button id="toggleBadge" class="link-button">Hide Badge</button>
     </div>
     <div id="status"></div>
     <script src="shared.js"></script>

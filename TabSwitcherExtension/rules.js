@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
+const GENERAL_FIELDS = ['autoStart', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+    'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
 let editingKey = null;
@@ -9,7 +11,16 @@ let sortDirection = 1;
 init();
 
 async function init() {
-    for (const [value, label] of Object.entries(REFRESH_MODES)) $('editRefresh').add(new Option(label, value));
+    for (const [value, label] of Object.entries(REFRESH_MODES)) {
+        $('editRefresh').add(new Option(label, value));
+        $('defaultMode').add(new Option(label, value));
+    }
+
+    // 'change' fires once a value is committed, so typing in a number box doesn't save every keystroke.
+    for (const id of GENERAL_FIELDS) $(id).addEventListener('change', saveGeneral);
+    $('scrollSpeed').addEventListener('input', () => {
+        $('scrollSpeedDisplay').textContent = $('scrollSpeed').value;
+    });
 
     $('filter').addEventListener('input', render);
     for (const header of document.querySelectorAll('button.sort')) {
@@ -46,7 +57,54 @@ async function init() {
 
 async function load() {
     settings = normalizeSettings(await chrome.storage.local.get(null));
+    fillGeneral();
     render();
+}
+
+// ---------- General and default settings ----------
+
+// Leaves the focused field alone so a storage update can't overwrite what the user is typing.
+function setField(id, prop, value) {
+    if (document.activeElement !== $(id)) $(id)[prop] = value;
+}
+
+function fillGeneral() {
+    setField('autoStart', 'checked', settings.autoStart);
+    setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
+    setField('badgeVisible', 'checked', settings.badgeVisible);
+    setField('badgeColor', 'value', settings.badgeColor);
+    setField('theme', 'value', settings.theme);
+    setField('defaultMode', 'value', settings.defaultRefresh.mode);
+    setField('defaultMinutes', 'value', settings.defaultRefresh.minutes);
+    setField('autoScroll', 'value', settings.defaultScroll.autoScroll ? 'on' : 'off');
+    setField('scrollToTop', 'checked', settings.defaultScroll.scrollToTop);
+    setField('scrollDelay', 'value', settings.defaultScroll.scrollDelay);
+    setField('scrollSpeed', 'value', settings.defaultScroll.scrollSpeed);
+    $('scrollSpeedDisplay').textContent = $('scrollSpeed').value;
+    updateGeneralVisibility();
+}
+
+function updateGeneralVisibility() {
+    $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
+    $('defaultScrollOptions').hidden = $('autoScroll').value !== 'on';
+}
+
+async function saveGeneral() {
+    updateGeneralVisibility();
+    await chrome.storage.local.set({
+        autoStart: $('autoStart').checked,
+        fullscreenOnStart: $('fullscreenOnStart').checked,
+        badgeVisible: $('badgeVisible').checked,
+        badgeColor: $('badgeColor').value,
+        theme: $('theme').value,
+        defaultRefresh: { mode: $('defaultMode').value, minutes: clampInt($('defaultMinutes').value, 1, 1440, 5) },
+        defaultScroll: {
+            autoScroll: $('autoScroll').value === 'on',
+            scrollToTop: $('scrollToTop').checked,
+            scrollDelay: clampInt($('scrollDelay').value, 0, 3600, 5),
+            scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20)
+        }
+    });
 }
 
 function cell(text, className) {
@@ -134,11 +192,6 @@ function sortKeys(keys) {
 }
 
 function render() {
-    $('defaults').textContent =
-        `Default Show For: ${describeDisplay(settings.switchInterval)}. ` +
-        `Default Refresh: ${describeRefresh(settings.defaultRefresh)}. ` +
-        `Default Auto Scroll: ${describeScroll(settings.defaultScroll)}.`;
-
     const allKeys = Object.keys(settings.pageRules);
     const filter = $('filter').value.trim().toLowerCase();
     const keys = sortKeys(allKeys.filter((key) => key.slice(5).toLowerCase().includes(filter)));
