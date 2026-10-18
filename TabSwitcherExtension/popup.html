@@ -70,6 +70,13 @@
             text-align: center;
             font-size: 14px;
         }
+        /* The spinner arrows take space on the right and push the number off center. */
+        input[type="number"] {
+            appearance: textfield;
+        }
+        input[type="number"]::-webkit-inner-spin-button {
+            appearance: none;
+        }
         select {
             padding: 4px;
             border: 1px solid #dadce0;

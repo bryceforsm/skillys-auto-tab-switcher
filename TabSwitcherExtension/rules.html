@@ -105,6 +105,9 @@
             font-weight: 500;
             padding: 0 5px;
         }
+        #pauseMode.compact {
+            width: 130px;
+        }
         .inline {
             display: flex;
             align-items: center;
@@ -327,6 +330,13 @@
             text-align: center;
             font-size: 14px;
         }
+        /* The spinner arrows take space on the right and push the number off center. */
+        input[type="number"] {
+            appearance: textfield;
+        }
+        input[type="number"]::-webkit-inner-spin-button {
+            appearance: none;
+        }
         input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -416,11 +426,17 @@
                 </div>
                 <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or the popup is open).">
                     <label for="pauseMode">Pause Timer:</label>
-                    <select id="pauseMode">
-                        <option value="disable">Disable</option>
-                        <option value="activity">On activity</option>
-                        <option value="hover">On hover</option>
-                    </select>
+                    <span class="inline">
+                        <select id="pauseMode">
+                            <option value="disable">Disable</option>
+                            <option value="activity">On activity</option>
+                            <option value="hover">On hover</option>
+                        </select>
+                        <span class="inline" id="resumeDelayWrap" hidden title="How many seconds before the timer resumes. On activity: seconds without mouse or keyboard use (at least 15). On hover: seconds after the pointer leaves the page.">
+                            <label for="resumeDelay">Resume After (sec):</label>
+                            <input type="number" id="resumeDelay" min="1" max="3600" value="15">
+                        </span>
+                    </span>
                 </div>
                 <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>

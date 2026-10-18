@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -13,12 +13,19 @@ let sortDirection = 1;
 init();
 
 async function init() {
-    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
-
     for (const [value, label] of Object.entries(REFRESH_MODES)) {
         $('editRefresh').add(new Option(label, value));
         $('defaultMode').add(new Option(label, value));
     }
+
+    // Opened as a plain file, for example to check layout. Show the defaults and only wire up what needs no chrome.*.
+    if (!globalThis.chrome?.runtime?.getManifest) {
+        for (const id of ['pauseMode', 'defaultMode', 'autoScroll']) $(id).addEventListener('change', updateGeneralVisibility);
+        fillGeneral();
+        render();
+        return;
+    }
+    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
 
     // 'change' fires once a value is committed, so typing in a number box doesn't save every keystroke.
     for (const id of GENERAL_FIELDS) $(id).addEventListener('change', saveGeneral);
@@ -95,6 +102,7 @@ function setField(id, prop, value) {
 function fillGeneral() {
     setField('interval', 'value', settings.switchInterval);
     setField('pauseMode', 'value', settings.pauseMode);
+    setField('resumeDelay', 'value', settings.resumeDelay);
     setField('autoStart', 'checked', settings.autoStart);
     setField('skipPinned', 'checked', settings.skipPinned);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
@@ -111,7 +119,19 @@ function fillGeneral() {
     updateGeneralVisibility();
 }
 
+// chrome.idle cannot detect inactivity faster than 15 seconds.
+function resumeMin() {
+    return $('pauseMode').value === 'activity' ? 15 : 1;
+}
+
 function updateGeneralVisibility() {
+    const pausing = $('pauseMode').value !== 'disable';
+    $('resumeDelayWrap').hidden = !pausing;
+    $('pauseMode').classList.toggle('compact', pausing);
+    $('resumeDelay').min = resumeMin();
+    if (Number($('resumeDelay').value) < resumeMin() && document.activeElement !== $('resumeDelay')) {
+        $('resumeDelay').value = resumeMin();
+    }
     $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
     $('defaultMinutesLabel').textContent = refreshMinutesLabel($('defaultMode').value);
     $('defaultScrollOptions').hidden = $('autoScroll').value !== 'on';
@@ -119,9 +139,13 @@ function updateGeneralVisibility() {
 
 async function saveGeneral() {
     updateGeneralVisibility();
+    // The box may still have focus, so show the clamped value here instead of waiting for a refill.
+    const resumeDelay = clampInt($('resumeDelay').value, resumeMin(), 3600, 15);
+    $('resumeDelay').value = resumeDelay;
     await chrome.storage.local.set({
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
+        resumeDelay,
         autoStart: $('autoStart').checked,
         skipPinned: $('skipPinned').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,

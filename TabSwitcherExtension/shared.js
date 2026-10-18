@@ -12,6 +12,7 @@ const PAUSE_MODES = ['disable', 'activity', 'hover'];
 const DEFAULTS = {
     switchInterval: 30,
     pauseMode: 'disable',
+    resumeDelay: 15,
     defaultRefresh: { mode: 'switch', minutes: 5 },
     defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
     // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, scheme? }. A missing section means use the default.
@@ -92,6 +93,7 @@ function normalizeSettings(raw) {
     return {
         switchInterval: clampInt(raw.switchInterval, 5, 86400, DEFAULTS.switchInterval),
         pauseMode,
+        resumeDelay: clampInt(raw.resumeDelay, 1, 3600, DEFAULTS.resumeDelay),
         defaultRefresh,
         defaultScroll,
         pageRules,

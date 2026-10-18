@@ -1,7 +1,7 @@
 importScripts('shared.js');
 
 const PAUSE_COLOR = '#d93025';
-const IDLE_SECONDS = 15;
+const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than this
 const LOAD_TIMEOUT_MS = 30000;
 const HEARTBEAT_ALARM = 'heartbeat';
 const STOP_SCROLLING = { command: 'stopScrolling' };
@@ -24,7 +24,7 @@ async function init() {
     settings = normalizeSettings(local);
     tabLoadedAt = session.tabLoadedAt || {};
 
-    chrome.idle.setDetectionInterval(IDLE_SECONDS);
+    chrome.idle.setDetectionInterval(idleSeconds());
     await refreshActivityState();
 
     // Session storage survives a worker restart but not a browser restart, so window IDs here are still valid.
@@ -60,6 +60,7 @@ function newWindowState(windowId) {
         waitingTabId: null,   // tab we are waiting on to finish loading
         waitTimer: null,
         hoverPaused: false,
+        hoverResumeTimer: null,
         switchingTo: null,    // tab we activated ourselves, so onActivated can ignore it
         activeTabId: null,
         activeUrl: null,      // URL of activeTabId, used to pick its display time
@@ -149,6 +150,7 @@ function forgetWindow(windowId) {
     const w = windows.get(windowId);
     if (!w) return false;
     clearTimeout(w.waitTimer);
+    clearTimeout(w.hoverResumeTimer);
     windows.delete(windowId);
     persistRunning();
     if (!windows.size) {
@@ -300,8 +302,12 @@ async function backgroundRefresh() {
 
 // ---------- Pausing ----------
 
+function idleSeconds() {
+    return Math.max(MIN_IDLE_SECONDS, settings.resumeDelay);
+}
+
 async function refreshActivityState() {
-    const state = settings.pauseMode === 'activity' ? await chrome.idle.queryState(IDLE_SECONDS) : 'idle';
+    const state = settings.pauseMode === 'activity' ? await chrome.idle.queryState(idleSeconds()) : 'idle';
     setActivityPaused(state === 'active');
 }
 
@@ -325,8 +331,17 @@ function handleHover(isHovering, tab) {
     if (!tab || !tab.active || settings.pauseMode !== 'hover') return;
     const w = windows.get(tab.windowId);
     if (!w) return;
-    w.hoverPaused = !!isHovering;
-    updatePause(w);
+    clearTimeout(w.hoverResumeTimer);
+    if (isHovering || settings.resumeDelay <= 0) {
+        w.hoverPaused = !!isHovering;
+        updatePause(w);
+        return;
+    }
+    // Stay paused for Resume After seconds once the pointer has left.
+    w.hoverResumeTimer = setTimeout(() => {
+        w.hoverPaused = false;
+        updatePause(w);
+    }, settings.resumeDelay * 1000);
 }
 
 function updatePause(w) {
@@ -357,7 +372,10 @@ function applySettingsChange(prev) {
         renderBadge(windowId);
     }
     persistRunning();
-    if (prev.pauseMode !== settings.pauseMode) refreshActivityState();
+    if (prev.pauseMode !== settings.pauseMode || prev.resumeDelay !== settings.resumeDelay) {
+        chrome.idle.setDetectionInterval(idleSeconds());
+        refreshActivityState();
+    }
 }
 
 // ---------- Tabs, badge and content script messaging ----------

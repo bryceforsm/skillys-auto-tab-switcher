@@ -58,6 +58,7 @@ This extension automatically switches between your open tabs at an interval you 
     - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
     - **Timer:**
         - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
+        - **Resume After** (shown next to Pause Timer when it is On activity or On hover) is how many seconds before the timer resumes. With **On activity** it is the time without mouse or keyboard use (at least 15, a Chrome limit). With **On hover** it is the time after the pointer leaves the page (at least 1).
         - **Start/Stop Shortcut** shows the current keyboard shortcut. Click it to change it in the browser's shortcut settings.
         - **Full Screen on Timer Start** puts the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
     - **General:**
