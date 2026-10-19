@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Skilly's Auto Tab Switcher",
   "description": "Automatically switches tabs at a set interval. Includes per-page refresh rules, auto-scrolling, and pausing on activity.",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "permissions": [
     "tabs",
     "storage",
@@ -10,7 +10,7 @@
     "scripting",
     "alarms"
   ],
-  "host_permissions": [
+  "optional_host_permissions": [
     "<all_urls>"
   ],
   "background": {
@@ -36,11 +36,5 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content_scroll.js"]
-    }
-  ]
+  }
 }

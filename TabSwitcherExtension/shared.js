@@ -107,6 +107,21 @@ function normalizeSettings(raw) {
     };
 }
 
+// Auto Scroll and Pause On Hover run a content script, which needs the optional site access.
+function needsSiteAccess(s) {
+    return s.pauseMode === 'hover' || s.defaultScroll.autoScroll
+        || Object.values(s.pageRules).some((rule) => rule.scroll && rule.scroll.autoScroll);
+}
+
+function hasSiteAccess() {
+    return chrome.permissions.contains({ origins: ['<all_urls>'] });
+}
+
+// Needs a click or change handler. The prompt can close the popup, so callers must not wait on it.
+function requestSiteAccess() {
+    return chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false);
+}
+
 // Keys drop a leading "www." and, on web pages, a trailing slash, so both forms of an address match.
 function normalizeKey(key) {
     const bare = key.replace(/^(host:|page:https?:\/\/)www\.(?=[^/:]+\.)/i, '$1');

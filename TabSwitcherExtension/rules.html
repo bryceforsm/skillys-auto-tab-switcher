@@ -63,6 +63,20 @@
             font-size: 13px;
             margin: 0 0 16px 0;
         }
+        .notice {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 16px 0;
+            padding: 8px 12px;
+            border: 1px solid #e37400;
+            border-radius: 4px;
+            background-color: #fef7e0;
+            font-size: 13px;
+        }
+        .notice[hidden] {
+            display: none;
+        }
         h2.section {
             font-size: 16px;
             font-weight: 500;
@@ -380,6 +394,10 @@
                 background-color: rgba(129, 201, 149, 0.16);
                 color: #81c995;
             }
+            .notice {
+                background-color: rgba(253, 214, 99, 0.12);
+                border-color: #fdd663;
+            }
             #editTarget {
                 color: #8ab4f8;
             }
@@ -429,6 +447,10 @@
             <span id="timerState" hidden></span>
         </header>
         <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
+        <div id="siteAccess" class="notice" hidden>
+            <span>Auto Scroll and Pause On Hover need permission to run on web pages. Until you allow it, they do nothing.</span>
+            <button type="button" id="allowAccess" class="primary">Allow site access</button>
+        </div>
         <h2 class="section">Settings</h2>
         <section class="settings">
             <fieldset>

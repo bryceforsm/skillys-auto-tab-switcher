@@ -16,7 +16,29 @@ let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
 const popupWindows = new Set(); // windows with the popup open
 
+const CONTENT_SCRIPT_ID = 'content-scroll';
+
 const ready = init().catch((err) => console.error("Skilly's Auto Tab Switcher failed to initialise", err));
+
+// Registered only while the optional site access is granted. Checked on every worker start.
+async function syncContentScript() {
+    const [granted, existing] = await Promise.all([
+        hasSiteAccess(),
+        chrome.scripting.getRegisteredContentScripts({ ids: [CONTENT_SCRIPT_ID] })
+    ]);
+    if (granted && !existing.length) {
+        await chrome.scripting.registerContentScripts([{
+            id: CONTENT_SCRIPT_ID,
+            matches: ['<all_urls>'],
+            js: ['content_scroll.js'],
+            persistAcrossSessions: true
+        }]);
+    } else if (!granted && existing.length) {
+        await chrome.scripting.unregisterContentScripts({ ids: [CONTENT_SCRIPT_ID] });
+    }
+}
+
+syncContentScript().catch((err) => console.error('Content script sync failed', err));
 
 async function init() {
     const [local, session] = await Promise.all([
@@ -608,6 +630,21 @@ chrome.windows.onRemoved.addListener((windowId) => {
 
 chrome.idle.onStateChanged.addListener((state) => {
     ready.then(() => setActivityPaused(settings.pauseMode === 'activity' && state === 'active'));
+});
+
+chrome.permissions.onAdded.addListener(() => {
+    syncContentScript().catch(() => {});
+    // Tabs that are already open get the script injected by startScrolling().
+    ready.then(() => {
+        if (activityPaused) return;
+        for (const w of windows.values()) {
+            if (w.activeTabId !== null) startScrolling(w.activeTabId, false);
+        }
+    });
+});
+
+chrome.permissions.onRemoved.addListener(() => {
+    syncContentScript().catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

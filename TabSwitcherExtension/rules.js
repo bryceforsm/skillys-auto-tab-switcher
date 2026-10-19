@@ -59,6 +59,12 @@ async function init() {
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
     $('shortcutBtn').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+    $('allowAccess').addEventListener('click', async () => {
+        await requestSiteAccess();
+        showSiteAccessNotice();
+    });
+    chrome.permissions.onAdded.addListener(showSiteAccessNotice);
+    chrome.permissions.onRemoved.addListener(showSiteAccessNotice);
     window.addEventListener('focus', showShortcut);
     showShortcut();
 
@@ -90,6 +96,12 @@ async function load() {
     settings = normalizeSettings(await chrome.storage.local.get(null));
     fillGeneral();
     render();
+    showSiteAccessNotice();
+}
+
+// Covers a declined prompt, revoked access, imported rules and users updating from a version that had it built in.
+async function showSiteAccessNotice() {
+    $('siteAccess').hidden = !needsSiteAccess(settings) || await hasSiteAccess();
 }
 
 // ---------- General and default settings ----------
@@ -142,6 +154,12 @@ async function saveGeneral() {
     // The box may still have focus, so show the clamped value here instead of waiting for a refill.
     const resumeDelay = clampInt($('resumeDelay').value, resumeMin(), 3600, 15);
     $('resumeDelay').value = resumeDelay;
+    const neededNow = needsSiteAccess({
+        pauseMode: $('pauseMode').value,
+        defaultScroll: { autoScroll: $('autoScroll').value === 'on' },
+        pageRules: settings.pageRules
+    });
+    if (neededNow && !needsSiteAccess(settings)) requestSiteAccess();
     await chrome.storage.local.set({
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
@@ -424,6 +442,7 @@ async function saveEdit(event) {
     if (scheme) rule.scheme = scheme;
     if (key !== oldKey && settings.pageRules[key]
         && !confirm(`A rule for ${displayTarget(key, settings.pageRules[key])} already exists. Replace it?`)) return;
+    if (rule.scroll && rule.scroll.autoScroll && !needsSiteAccess(settings)) requestSiteAccess();
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
         if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;

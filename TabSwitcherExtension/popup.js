@@ -50,6 +50,9 @@ async function init() {
     $('undo').addEventListener('click', undoReset);
     $('toggleTimer').addEventListener('click', toggleTimer);
     $('manageRules').addEventListener('click', manageRules);
+    $('allowAccess').addEventListener('click', () => requestSiteAccess());
+    chrome.permissions.onAdded.addListener(showAccessNote);
+    chrome.permissions.onRemoved.addListener(showAccessNote);
 
     const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
     timerRunning = !!response?.running;
@@ -116,11 +119,18 @@ function currentInterval() {
 }
 
 function saveGeneral(committed) {
+    const neededBefore = needsSiteAccess(defaults);
     defaults.switchInterval = currentInterval();
     defaults.pauseMode = $('pauseMode').value;
     if (committed) $('interval').value = defaults.switchInterval;
+    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ switchInterval: defaults.switchInterval, pauseMode: defaults.pauseMode });
+    showAccessNote();
     updateEffectiveRule();
+}
+
+async function showAccessNote() {
+    $('accessNote').hidden = !needsSiteAccess(defaults) || await hasSiteAccess();
 }
 
 // ---------- Per-page rule editor ----------
@@ -169,6 +179,7 @@ function loadEditorRule() {
 }
 
 function onRuleEdit(committed) {
+    const neededBefore = needsSiteAccess(defaults);
     const key = editorKey();
     const rule = {};
     const mode = $('ruleMode').value;
@@ -194,6 +205,7 @@ function onRuleEdit(committed) {
     } else {
         delete rules[key];
     }
+    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ pageRules: rules });
     showStatus('', false);
     // Show the values as they were clamped and saved.
@@ -250,6 +262,7 @@ function updateEffectiveRule() {
 
 function renderRuleState() {
     $('ruleCount').textContent = Object.keys(rules).length;
+    showAccessNote();
     if (!pageKeys) return;
     for (const scope of ['page', 'site']) {
         const has = !!(pageKeys[scope] && rules[pageKeys[scope]]);

@@ -184,6 +184,22 @@
         #status:has(#statusText:empty) {
             display: none;
         }
+        #accessNote {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #b06000;
+            margin-top: 4px;
+        }
+        #accessNote[hidden] {
+            display: none;
+        }
+        #accessNote .link-button {
+            padding: 0 5px;
+            font-size: 12px;
+        }
         #status .link-button {
             padding: 0 5px;
             font-size: 12px;
@@ -335,6 +351,9 @@
             #status {
                 color: #81c995;
             }
+            #accessNote {
+                color: #fdd663;
+            }
             .link-button {
                 color: #8ab4f8;
             }
@@ -453,6 +472,7 @@
         <span>Saved Rules: <span id="ruleCount">0</span></span>
         <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
     </div>
+    <div id="accessNote" hidden><span>Auto Scroll and On hover need site access.</span><button id="allowAccess" class="link-button" title="Let Auto Scroll and Pause On Hover run on web pages.">Allow</button></div>
     <div id="status"><span id="statusText"></span><button id="undo" class="link-button" hidden>Undo</button></div>
     <script src="shared.js"></script>
     <script src="popup.js"></script>

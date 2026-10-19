@@ -26,7 +26,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 - Chrome caps popups at 800x600. The popup is about 470px tall with everything expanded, so any new row there needs space found elsewhere.
 - The dark theme uses nested `:root[data-theme="dark"]` rules that outrank `#id.class` selectors. Every new state class (for example `.rule-chip.active`) needs a dark variant too.
 - No network requests, remote code, `eval` or `new Function`. The store privacy answers in `Misc/STORE_LISTING.md` depend on this.
-- `<all_urls>` is intentional. See `Misc/designnotes.md`.
+- `<all_urls>` is an optional host permission, requested when Auto Scroll or Pause On Hover is first turned on. The content script is registered at runtime, so don't add `content_scripts` or `host_permissions` back. See `Misc/designnotes.md`.
 
 ## Build and Test
 
