@@ -94,6 +94,7 @@ function resume(w) {
 function restartCountdown(w) {
     w.deadline = null;
     w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
+    w.shownSeconds = undefined;
     resume(w);
     persistRunning();
 }
@@ -197,6 +198,7 @@ function tick() {
                 if (windows.get(windowId) === w) restartCountdown(w);
             });
         } else {
+            w.shownSeconds = Math.ceil(remainingMs(w) / 1000); // same value the badge shows until the next tick
             renderBadge(windowId);
         }
     }
@@ -463,7 +465,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
         else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
         else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
-        sendResponse({ running: windows.has(msg.windowId) });
+        const w = windows.get(msg.windowId);
+        sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null });
     });
     return true;
 });

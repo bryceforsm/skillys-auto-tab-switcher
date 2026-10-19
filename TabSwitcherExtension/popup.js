@@ -55,6 +55,8 @@ async function init() {
     timerRunning = !!response?.running;
     updateButtonState();
     showShortcut();
+    setInterval(refreshCountdown, 1000);
+    refreshCountdown();
 
     // The keyboard shortcut can start or stop the timer while the popup is open.
     chrome.storage.onChanged.addListener(async (changes, area) => {
@@ -65,11 +67,31 @@ async function init() {
     });
 }
 
+let shortcutText = '';
+let countdownText = '';
+
 async function showShortcut() {
     const commands = await chrome.commands.getAll();
-    const shortcut = commands.find((c) => c.name === 'toggle-timer')?.shortcut;
-    $('shortcutHint').textContent = shortcut || '';
-    $('shortcutHint').hidden = !shortcut;
+    shortcutText = commands.find((c) => c.name === 'toggle-timer')?.shortcut || '';
+    renderHint();
+}
+
+function renderHint() {
+    const text = [countdownText, shortcutText].filter(Boolean).join(' \u00b7 ');
+    $('shortcutHint').textContent = text;
+    $('shortcutHint').hidden = !text;
+}
+
+async function refreshCountdown() {
+    const state = timerRunning ? await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId }) : null;
+    let text = '';
+    if (state?.running) {
+        if (state.loading) text = 'Loading page';
+        else if (state.paused) text = `Paused at ${state.seconds}s`;
+        else text = `Next tab in ${state.seconds}s`;
+    }
+    countdownText = text;
+    renderHint();
 }
 
 function fillModeSelect(select) {
@@ -270,4 +292,5 @@ function updateButtonState() {
     const button = $('toggleTimer');
     button.textContent = timerRunning ? 'Stop Timer' : 'Start Timer';
     button.classList.toggle('running', timerRunning);
+    refreshCountdown();
 }
