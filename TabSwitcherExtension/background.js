@@ -1,8 +1,10 @@
 importScripts('shared.js');
 
 const PAUSE_COLOR = '#d93025';
-const IDLE_SECONDS = 15;
+const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than this
 const LOAD_TIMEOUT_MS = 30000;
+const PRELOAD_LEAD_MS = 5000; // how long before a switch the "Before switch" refresh runs
+const PRELOAD_VALID_MS = 20000;
 const HEARTBEAT_ALARM = 'heartbeat';
 const STOP_SCROLLING = { command: 'stopScrolling' };
 
@@ -14,7 +16,29 @@ let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
 const popupWindows = new Set(); // windows with the popup open
 
+const CONTENT_SCRIPT_ID = 'content-scroll';
+
 const ready = init().catch((err) => console.error("Skilly's Auto Tab Switcher failed to initialise", err));
+
+// Registered only while the optional site access is granted. Checked on every worker start.
+async function syncContentScript() {
+    const [granted, existing] = await Promise.all([
+        hasSiteAccess(),
+        chrome.scripting.getRegisteredContentScripts({ ids: [CONTENT_SCRIPT_ID] })
+    ]);
+    if (granted && !existing.length) {
+        await chrome.scripting.registerContentScripts([{
+            id: CONTENT_SCRIPT_ID,
+            matches: ['<all_urls>'],
+            js: ['content_scroll.js'],
+            persistAcrossSessions: true
+        }]);
+    } else if (!granted && existing.length) {
+        await chrome.scripting.unregisterContentScripts({ ids: [CONTENT_SCRIPT_ID] });
+    }
+}
+
+syncContentScript().catch((err) => console.error('Content script sync failed', err));
 
 async function init() {
     const [local, session] = await Promise.all([
@@ -24,7 +48,7 @@ async function init() {
     settings = normalizeSettings(local);
     tabLoadedAt = session.tabLoadedAt || {};
 
-    chrome.idle.setDetectionInterval(IDLE_SECONDS);
+    chrome.idle.setDetectionInterval(idleSeconds());
     await refreshActivityState();
 
     // Session storage survives a worker restart but not a browser restart, so window IDs here are still valid.
@@ -60,6 +84,7 @@ function newWindowState(windowId) {
         waitingTabId: null,   // tab we are waiting on to finish loading
         waitTimer: null,
         hoverPaused: false,
+        hoverResumeTimer: null,
         switchingTo: null,    // tab we activated ourselves, so onActivated can ignore it
         activeTabId: null,
         activeUrl: null,      // URL of activeTabId, used to pick its display time
@@ -93,6 +118,8 @@ function resume(w) {
 function restartCountdown(w) {
     w.deadline = null;
     w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
+    w.shownSeconds = undefined;
+    w.preloadChecked = false;
     resume(w);
     persistRunning();
 }
@@ -149,6 +176,7 @@ function forgetWindow(windowId) {
     const w = windows.get(windowId);
     if (!w) return false;
     clearTimeout(w.waitTimer);
+    clearTimeout(w.hoverResumeTimer);
     windows.delete(windowId);
     persistRunning();
     if (!windows.size) {
@@ -195,6 +223,11 @@ function tick() {
                 if (windows.get(windowId) === w) restartCountdown(w);
             });
         } else {
+            w.shownSeconds = Math.ceil(remainingMs(w) / 1000); // same value the badge shows until the next tick
+            if (w.deadline !== null && !w.preloadChecked && w.deadline - now <= PRELOAD_LEAD_MS) {
+                w.preloadChecked = true;
+                preloadNext(windowId, w);
+            }
             renderBadge(windowId);
         }
     }
@@ -208,9 +241,7 @@ async function switchTab(windowId, w) {
         return;
     }
 
-    const currentIndex = tabs.findIndex((t) => t.active);
-    const current = tabs[currentIndex];
-    const next = tabs[(currentIndex + 1) % tabs.length];
+    const { current, next } = pickNext(tabs);
 
     // With a single tab we "switch" to the same tab so its refresh rule still applies.
     if (!current || next.id !== current.id) {
@@ -227,7 +258,7 @@ async function switchTab(windowId, w) {
     if (windows.get(windowId) !== w) return;
     w.activeUrl = tab.url || tab.pendingUrl;
 
-    if (shouldRefreshOnSwitch(tab)) {
+    if (shouldRefreshOnSwitch(w, tab)) {
         waitForLoad(w, tab.id);
         await chrome.tabs.reload(tab.id).catch(() => finishWait(w, tab.id));
     } else if (tab.status !== 'complete') {
@@ -238,11 +269,40 @@ async function switchTab(windowId, w) {
     }
 }
 
-function shouldRefreshOnSwitch(tab) {
+function pickNext(tabs) {
+    const currentIndex = tabs.findIndex((t) => t.active);
+    const current = tabs[currentIndex];
+    let next = tabs[(currentIndex + 1) % tabs.length];
+    if (settings.skipPinned) {
+        // Stays on the current tab when every other tab is pinned.
+        const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
+        next = others.find((t) => !t.pinned) || current || next;
+    }
+    return { current, next };
+}
+
+// Reloads the next tab shortly before its turn, so it is already fresh when shown.
+async function preloadNext(windowId, w) {
+    const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
+    if (windows.get(windowId) !== w) return;
+    const { current, next } = pickNext(tabs);
+    if (!next || (current && next.id === current.id)) return;
+    if (refreshRuleFor(settings, next.url || next.pendingUrl).mode !== 'preload') return;
+    w.preloaded = { tabId: next.id, at: Date.now() };
+    chrome.tabs.reload(next.id).catch(() => { w.preloaded = null; });
+}
+
+function shouldRefreshOnSwitch(w, tab) {
     const rule = refreshRuleFor(settings, tab.url || tab.pendingUrl);
     switch (rule.mode) {
         case 'switch':
             return true;
+        case 'preload': {
+            // Reload now if the early reload didn't happen or was long enough ago to be stale.
+            const p = w.preloaded;
+            w.preloaded = null;
+            return !(p && p.tabId === tab.id && Date.now() - p.at < PRELOAD_VALID_MS);
+        }
         case 'stale':
         case 'background':
             return Date.now() - (tabLoadedAt[tab.id] || 0) >= rule.minutes * 60000;
@@ -295,8 +355,12 @@ async function backgroundRefresh() {
 
 // ---------- Pausing ----------
 
+function idleSeconds() {
+    return Math.max(MIN_IDLE_SECONDS, settings.resumeDelay);
+}
+
 async function refreshActivityState() {
-    const state = settings.pauseMode === 'activity' ? await chrome.idle.queryState(IDLE_SECONDS) : 'idle';
+    const state = settings.pauseMode === 'activity' ? await chrome.idle.queryState(idleSeconds()) : 'idle';
     setActivityPaused(state === 'active');
 }
 
@@ -320,12 +384,27 @@ function handleHover(isHovering, tab) {
     if (!tab || !tab.active || settings.pauseMode !== 'hover') return;
     const w = windows.get(tab.windowId);
     if (!w) return;
-    w.hoverPaused = !!isHovering;
-    updatePause(w);
+    clearTimeout(w.hoverResumeTimer);
+    if (isHovering || settings.resumeDelay <= 0) {
+        w.hoverPaused = !!isHovering;
+        updatePause(w);
+        return;
+    }
+    // Stay paused for Resume After seconds once the pointer has left.
+    w.hoverResumeTimer = setTimeout(() => {
+        w.hoverPaused = false;
+        updatePause(w);
+    }, settings.resumeDelay * 1000);
+}
+
+// Scrolling follows the timer: it holds while the timer is held by hover or the popup, and resumes with it.
+function scrollHeld(w) {
+    return w.hoverPaused || popupPaused(w);
 }
 
 function updatePause(w) {
     if (isPaused(w)) pause(w); else resume(w);
+    if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'pauseState', paused: scrollHeld(w) });
     persistRunning();
     renderBadge(w.windowId);
 }
@@ -352,7 +431,10 @@ function applySettingsChange(prev) {
         renderBadge(windowId);
     }
     persistRunning();
-    if (prev.pauseMode !== settings.pauseMode) refreshActivityState();
+    if (prev.pauseMode !== settings.pauseMode || prev.resumeDelay !== settings.resumeDelay) {
+        chrome.idle.setDetectionInterval(idleSeconds());
+        refreshActivityState();
+    }
 }
 
 // ---------- Tabs, badge and content script messaging ----------
@@ -369,7 +451,8 @@ function sendToTab(tabId, message) {
 // onArrival applies the page's "scroll to top" option. Resumes and setting changes keep the position.
 async function startScrolling(tabId, onArrival) {
     const tab = await chrome.tabs.get(tabId).catch(() => null);
-    if (!tab) return;
+    // The timer may have stopped while we waited, and scrolling only runs with the timer.
+    if (!tab || !windows.has(tab.windowId)) return;
     const scroll = scrollSettingsFor(settings, tab.url);
     const pauseOnHover = settings.pauseMode === 'hover';
     if (!scroll.autoScroll && !pauseOnHover) {
@@ -383,12 +466,13 @@ async function startScrolling(tabId, onArrival) {
         delay: scroll.scrollDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
         pauseOnHover,
-        popupOpen: popupWindows.has(tab.windowId)
+        paused: scrollHeld(windows.get(tab.windowId))
     };
     chrome.tabs.sendMessage(tabId, message).catch(async () => {
         // Tabs opened before install or update have no content script yet.
         try {
             await chrome.scripting.executeScript({ target: { tabId }, files: ['content_scroll.js'] });
+            if (!windows.has(tab.windowId)) return;
             await chrome.tabs.sendMessage(tabId, message);
         } catch (e) {
             // Restricted pages (chrome://, the web store) cannot be scripted.
@@ -440,9 +524,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
         else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
         else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
-        sendResponse({ running: windows.has(msg.windowId) });
+        const w = windows.get(msg.windowId);
+        sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null });
     });
     return true;
+});
+
+// The shortcut is set (and can be changed) at chrome://extensions/shortcuts.
+chrome.commands.onCommand.addListener((command) => {
+    if (command !== 'toggle-timer') return;
+    ready.then(async () => {
+        const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+        if (!win) return;
+        if (windows.has(win.id)) await stopWindow(win.id);
+        else await startWindow(win.id);
+    });
 });
 
 // The popup holds a port open while it is shown, so On hover also covers editing in the popup.
@@ -453,7 +549,6 @@ chrome.runtime.onConnect.addListener((port) => {
         const w = windows.get(windowId);
         if (!w) return;
         updatePause(w);
-        if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'popupState', open: popupWindows.has(windowId) });
     };
     port.onMessage.addListener((msg) => {
         windowId = msg.windowId;
@@ -542,6 +637,21 @@ chrome.windows.onRemoved.addListener((windowId) => {
 
 chrome.idle.onStateChanged.addListener((state) => {
     ready.then(() => setActivityPaused(settings.pauseMode === 'activity' && state === 'active'));
+});
+
+chrome.permissions.onAdded.addListener(() => {
+    syncContentScript().catch(() => {});
+    // Tabs that are already open get the script injected by startScrolling().
+    ready.then(() => {
+        if (activityPaused) return;
+        for (const w of windows.values()) {
+            if (w.activeTabId !== null) startScrolling(w.activeTabId, false);
+        }
+    });
+});
+
+chrome.permissions.onRemoved.addListener(() => {
+    syncContentScript().catch(() => {});
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

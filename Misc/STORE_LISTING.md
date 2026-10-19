@@ -21,7 +21,7 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
 - Window isolation: the timer only affects the window it was started in.
-- Smart refresh: reload on every switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
+- Smart refresh: reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
 - Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
 - Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
@@ -80,7 +80,7 @@ Used for the optional "Pause Timer: On activity" mode. The extension checks whet
 ### scripting justification
 
 ```text
-Used to inject the extension's own bundled content script (content_scroll.js) into tabs that were already open before the extension was installed or updated, because declared content scripts do not run in those tabs until they reload. That script performs auto scrolling and detects mouse hover for the "Pause Timer: On hover" mode. No remote or dynamically generated code is injected.
+Used to register the extension's own bundled content script (content_scroll.js) at runtime, only after the user grants optional site access, and to inject it into tabs that were already open at that moment. That script performs auto scrolling and detects mouse hover for the "Pause Timer: On hover" mode. No remote or dynamically generated code is injected.
 ```
 
 ### alarms justification
@@ -92,7 +92,7 @@ Used for a periodic heartbeat, only while the timer is running, that wakes the b
 ### Host permission justification
 
 ```text
-The extension is meant to rotate whatever pages the user chooses (dashboards, status pages, internal tools), so it cannot know the sites in advance. Access to all URLs is needed so the content script can auto scroll pages and detect hover to pause the timer, and so the scripting permission can inject that same script into tabs opened before installation. The script does not read, collect or modify page content.
+The extension asks for site access (optional_host_permissions, all URLs) only when the user turns on Auto Scroll or Pause Timer: On hover, and works without it for everything else. The user picks which pages to rotate (dashboards, status pages, internal tools), so the sites cannot be known in advance. Access is needed so the content script can auto scroll pages and detect hover to pause the timer. The script does not read, collect or modify page content.
 ```
 
 ### Are you using remote code?
@@ -110,5 +110,5 @@ Username and password: leave blank (no account or login is required).
 Additional instructions (500 characters max):
 
 ```text
-No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Pause Timer: On hover pauses while the mouse is over the page. Current Tab, Customize creates per-page rules. More Settings and Rules holds defaults (Auto Scroll: Enable scrolls long pages) and all rules. Stop Timer ends it.
+No login needed. Open one window with 3 tabs, e.g. example.com, a long Wikipedia article and google.com. Click the icon, set Show Each Tab For to 5, then Start Timer. The badge counts down and tabs switch every 5 seconds. Other windows are not affected. Current Tab, Customize creates per-page rules. To try Auto Scroll or Pause Timer: On hover, turn it on and click Allow when Chrome asks for site access. Stop Timer ends it.
 ```

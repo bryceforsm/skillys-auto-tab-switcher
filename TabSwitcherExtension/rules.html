@@ -14,6 +14,8 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #ffffff;
+            background-image: linear-gradient(160deg, #ffffff, #eaeef3);
+            background-attachment: fixed;
             color: #202124;
             margin: 0;
             padding: 24px;
@@ -34,7 +36,12 @@
         h1 {
             font-size: 20px;
             margin: 0;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            background: linear-gradient(90deg, #1f3b57, #24689c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
         #timerState {
             margin-left: auto;
@@ -55,6 +62,20 @@
         .intro {
             font-size: 13px;
             margin: 0 0 16px 0;
+        }
+        .notice {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0 0 16px 0;
+            padding: 8px 12px;
+            border: 1px solid #e37400;
+            border-radius: 4px;
+            background-color: #fef7e0;
+            font-size: 13px;
+        }
+        .notice[hidden] {
+            display: none;
         }
         h2.section {
             font-size: 16px;
@@ -105,6 +126,9 @@
             font-weight: 500;
             padding: 0 5px;
         }
+        #pauseMode.compact {
+            width: 130px;
+        }
         .inline {
             display: flex;
             align-items: center;
@@ -141,7 +165,7 @@
             flex: 1;
             max-width: 420px;
             padding: 6px 8px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -181,7 +205,7 @@
         button {
             padding: 4px 10px;
             border-radius: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             background-color: #f1f3f4;
             color: #3c4043;
             font-size: 13px;
@@ -275,7 +299,7 @@
             flex: 1;
             min-width: 0;
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -293,9 +317,12 @@
         select {
             width: 220px;
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             font-size: 14px;
+        }
+        #shortcutBtn {
+            width: 220px;
         }
         .inline-inputs {
             display: flex;
@@ -319,10 +346,17 @@
         input[type="number"] {
             width: 60px;
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             text-align: center;
             font-size: 14px;
+        }
+        /* The spinner arrows take space on the right and push the number off center. */
+        input[type="number"] {
+            appearance: textfield;
+        }
+        input[type="number"]::-webkit-inner-spin-button {
+            appearance: none;
         }
         input[type="checkbox"] {
             width: 18px;
@@ -340,6 +374,12 @@
                 background-color: #202124;
                 color: #e8eaed;
             }
+            body {
+                background-image: linear-gradient(160deg, #202124, #1d2127);
+            }
+            h1 {
+                background-image: linear-gradient(90deg, #e8eaed, #8ab4f8);
+            }
             header, th, td, dialog, fieldset {
                 border-color: #3c4043;
             }
@@ -353,6 +393,10 @@
             #timerState.running {
                 background-color: rgba(129, 201, 149, 0.16);
                 color: #81c995;
+            }
+            .notice {
+                background-color: rgba(253, 214, 99, 0.12);
+                border-color: #fdd663;
             }
             #editTarget {
                 color: #8ab4f8;
@@ -403,6 +447,10 @@
             <span id="timerState" hidden></span>
         </header>
         <p class="intro muted">Settings apply to all windows and save as soon as you change them. Page rules apply wherever that page is open.</p>
+        <div id="siteAccess" class="notice" hidden>
+            <span>Auto Scroll and Pause On Hover need permission to run on web pages. Until you allow it, they do nothing.</span>
+            <button type="button" id="allowAccess" class="primary">Allow site access</button>
+        </div>
         <h2 class="section">Settings</h2>
         <section class="settings">
             <fieldset>
@@ -413,15 +461,25 @@
                 </div>
                 <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or the popup is open).">
                     <label for="pauseMode">Pause Timer:</label>
-                    <select id="pauseMode">
-                        <option value="disable">Disable</option>
-                        <option value="activity">On activity</option>
-                        <option value="hover">On hover</option>
-                    </select>
+                    <span class="inline">
+                        <select id="pauseMode">
+                            <option value="disable">Disable</option>
+                            <option value="activity">On activity</option>
+                            <option value="hover">On hover</option>
+                        </select>
+                        <span class="inline" id="resumeDelayWrap" hidden title="How many seconds before the timer resumes. On activity: seconds without mouse or keyboard use (at least 15). On hover: seconds after the pointer leaves the page.">
+                            <label for="resumeDelay">Resume After (sec):</label>
+                            <input type="number" id="resumeDelay" min="1" max="3600" value="15">
+                        </span>
+                    </span>
                 </div>
                 <div class="control-group" title="Put the window in full screen when its timer starts, and restore it when the timer stops. Press F11 to leave full screen at any time.">
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
                     <input type="checkbox" id="fullscreenOnStart">
+                </div>
+                <div class="control-group" title="Press this key combination to start or stop the timer in the current window. Click to change it in the browser's shortcut settings.">
+                    <label for="shortcutBtn">Start/Stop Shortcut:</label>
+                    <button type="button" id="shortcutBtn">Not set</button>
                 </div>
             </fieldset>
             <fieldset>
@@ -429,6 +487,10 @@
                 <div class="control-group" title="Automatically start the timer when the browser opens or a new window is created.">
                     <label for="autoStart">Auto Start on Browser Launch:</label>
                     <input type="checkbox" id="autoStart">
+                </div>
+                <div class="control-group" title="Never switch to a pinned tab. A pinned tab you are already on still switches away normally.">
+                    <label for="skipPinned">Skip Pinned Tabs:</label>
+                    <input type="checkbox" id="skipPinned">
                 </div>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
@@ -508,7 +570,7 @@
         <section class="reset">
             <div>
                 <strong>Reset to Defaults</strong>
-                <div class="muted">Restores every extension setting to its default and removes all saved rules.</div>
+                <div class="muted">Restores every extension setting to its default and removes all saved rules. The keyboard shortcut is kept, so change it with the Start/Stop Shortcut setting.</div>
             </div>
             <button type="button" id="resetAll" class="danger">Reset to Defaults</button>
         </section>

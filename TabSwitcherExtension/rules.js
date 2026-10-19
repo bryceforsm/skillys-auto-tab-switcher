@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'autoStart', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -13,12 +13,19 @@ let sortDirection = 1;
 init();
 
 async function init() {
-    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
-
     for (const [value, label] of Object.entries(REFRESH_MODES)) {
         $('editRefresh').add(new Option(label, value));
         $('defaultMode').add(new Option(label, value));
     }
+
+    // Opened as a plain file, for example to check layout. Show the defaults and only wire up what needs no chrome.*.
+    if (!globalThis.chrome?.runtime?.getManifest) {
+        for (const id of ['pauseMode', 'defaultMode', 'autoScroll']) $(id).addEventListener('change', updateGeneralVisibility);
+        fillGeneral();
+        render();
+        return;
+    }
+    $('version').textContent = `Version ${chrome.runtime.getManifest().version}`;
 
     // 'change' fires once a value is committed, so typing in a number box doesn't save every keystroke.
     for (const id of GENERAL_FIELDS) $(id).addEventListener('change', saveGeneral);
@@ -51,6 +58,15 @@ async function init() {
     $('editorForm').addEventListener('submit', saveEdit);
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
+    $('shortcutBtn').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+    $('allowAccess').addEventListener('click', async () => {
+        await requestSiteAccess();
+        showSiteAccessNotice();
+    });
+    chrome.permissions.onAdded.addListener(showSiteAccessNotice);
+    chrome.permissions.onRemoved.addListener(showSiteAccessNotice);
+    window.addEventListener('focus', showShortcut);
+    showShortcut();
 
     windowId = (await chrome.windows.getCurrent()).id;
     // Keep the table current if the popup saves while this page is open.
@@ -60,6 +76,12 @@ async function init() {
     });
     await load();
     showTimerState();
+}
+
+async function showShortcut() {
+    const commands = await chrome.commands.getAll();
+    const toggle = commands.find((c) => c.name === 'toggle-timer');
+    $('shortcutBtn').textContent = toggle?.shortcut || 'Not set (click to set)';
 }
 
 async function showTimerState() {
@@ -74,6 +96,12 @@ async function load() {
     settings = normalizeSettings(await chrome.storage.local.get(null));
     fillGeneral();
     render();
+    showSiteAccessNotice();
+}
+
+// Covers a declined prompt, revoked access, imported rules and users updating from a version that had it built in.
+async function showSiteAccessNotice() {
+    $('siteAccess').hidden = !needsSiteAccess(settings) || await hasSiteAccess();
 }
 
 // ---------- General and default settings ----------
@@ -86,7 +114,9 @@ function setField(id, prop, value) {
 function fillGeneral() {
     setField('interval', 'value', settings.switchInterval);
     setField('pauseMode', 'value', settings.pauseMode);
+    setField('resumeDelay', 'value', settings.resumeDelay);
     setField('autoStart', 'checked', settings.autoStart);
+    setField('skipPinned', 'checked', settings.skipPinned);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
@@ -101,7 +131,19 @@ function fillGeneral() {
     updateGeneralVisibility();
 }
 
+// chrome.idle cannot detect inactivity faster than 15 seconds.
+function resumeMin() {
+    return $('pauseMode').value === 'activity' ? 15 : 1;
+}
+
 function updateGeneralVisibility() {
+    const pausing = $('pauseMode').value !== 'disable';
+    $('resumeDelayWrap').hidden = !pausing;
+    $('pauseMode').classList.toggle('compact', pausing);
+    $('resumeDelay').min = resumeMin();
+    if (Number($('resumeDelay').value) < resumeMin() && document.activeElement !== $('resumeDelay')) {
+        $('resumeDelay').value = resumeMin();
+    }
     $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
     $('defaultMinutesLabel').textContent = refreshMinutesLabel($('defaultMode').value);
     $('defaultScrollOptions').hidden = $('autoScroll').value !== 'on';
@@ -109,10 +151,21 @@ function updateGeneralVisibility() {
 
 async function saveGeneral() {
     updateGeneralVisibility();
+    // The box may still have focus, so show the clamped value here instead of waiting for a refill.
+    const resumeDelay = clampInt($('resumeDelay').value, resumeMin(), 3600, 15);
+    $('resumeDelay').value = resumeDelay;
+    const neededNow = needsSiteAccess({
+        pauseMode: $('pauseMode').value,
+        defaultScroll: { autoScroll: $('autoScroll').value === 'on' },
+        pageRules: settings.pageRules
+    });
+    if (neededNow && !needsSiteAccess(settings)) requestSiteAccess();
     await chrome.storage.local.set({
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
+        resumeDelay,
         autoStart: $('autoStart').checked,
+        skipPinned: $('skipPinned').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
@@ -389,6 +442,7 @@ async function saveEdit(event) {
     if (scheme) rule.scheme = scheme;
     if (key !== oldKey && settings.pageRules[key]
         && !confirm(`A rule for ${displayTarget(key, settings.pageRules[key])} already exists. Replace it?`)) return;
+    if (rule.scroll && rule.scroll.autoScroll && !needsSiteAccess(settings)) requestSiteAccess();
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
         if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;
@@ -478,7 +532,7 @@ async function importRules(event) {
 }
 
 async function resetAll() {
-    if (!confirm("Reset all Skilly's Auto Tab Switcher settings to their defaults?\n\nThis removes every saved rule and cannot be undone.")) return;
+    if (!confirm("Reset all Skilly's Auto Tab Switcher settings to their defaults?\n\nThis removes every saved rule and cannot be undone.\n\nThe keyboard shortcut is not changed.")) return;
     $('filter').value = '';
     await chrome.storage.local.clear();
     await chrome.storage.local.set(structuredClone(DEFAULTS));

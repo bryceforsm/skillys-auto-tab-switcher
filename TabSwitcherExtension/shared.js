@@ -2,7 +2,8 @@
 
 const REFRESH_MODES = {
     never: 'Disable',
-    switch: 'Every switch',
+    switch: 'On switch',
+    preload: 'Before switch',
     stale: 'On switch, if older than',
     background: 'Periodically, in background'
 };
@@ -12,6 +13,7 @@ const PAUSE_MODES = ['disable', 'activity', 'hover'];
 const DEFAULTS = {
     switchInterval: 30,
     pauseMode: 'disable',
+    resumeDelay: 15,
     defaultRefresh: { mode: 'switch', minutes: 5 },
     defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
     // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, scheme? }. A missing section means use the default.
@@ -19,6 +21,7 @@ const DEFAULTS = {
     pageRules: {},
     autoStart: false,
     fullscreenOnStart: false,
+    skipPinned: false,
     badgeColor: '#32cd32',
     badgeVisible: true,
     theme: 'system'
@@ -91,15 +94,32 @@ function normalizeSettings(raw) {
     return {
         switchInterval: clampInt(raw.switchInterval, 5, 86400, DEFAULTS.switchInterval),
         pauseMode,
+        resumeDelay: clampInt(raw.resumeDelay, 1, 3600, DEFAULTS.resumeDelay),
         defaultRefresh,
         defaultScroll,
         pageRules,
         autoStart: raw.autoStart === true,
         fullscreenOnStart: raw.fullscreenOnStart === true,
+        skipPinned: raw.skipPinned === true,
         badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
         badgeVisible: raw.badgeVisible !== false,
         theme: ['system', 'light', 'dark'].includes(raw.theme) ? raw.theme : 'system'
     };
+}
+
+// Auto Scroll and Pause On Hover run a content script, which needs the optional site access.
+function needsSiteAccess(s) {
+    return s.pauseMode === 'hover' || s.defaultScroll.autoScroll
+        || Object.values(s.pageRules).some((rule) => rule.scroll && rule.scroll.autoScroll);
+}
+
+function hasSiteAccess() {
+    return chrome.permissions.contains({ origins: ['<all_urls>'] });
+}
+
+// Needs a click or change handler. The prompt can close the popup, so callers must not wait on it.
+function requestSiteAccess() {
+    return chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false);
 }
 
 // Keys drop a leading "www." and, on web pages, a trailing slash, so both forms of an address match.
@@ -168,4 +188,17 @@ function describeScroll(scroll) {
     if (!scroll.autoScroll) return 'Disable';
     const delay = scroll.scrollDelay ? `, ${scroll.scrollDelay}s delay` : '';
     return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}`;
+}
+
+// Page Up and Page Down step number boxes by 5 (the service worker has no document).
+if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+        const input = e.target;
+        if (e.key !== 'PageUp' && e.key !== 'PageDown') return;
+        if (!(input instanceof HTMLInputElement) || input.type !== 'number') return;
+        e.preventDefault();
+        if (e.key === 'PageUp') input.stepUp(5); else input.stepDown(5);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
 }

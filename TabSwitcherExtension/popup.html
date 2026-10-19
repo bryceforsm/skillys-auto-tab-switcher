@@ -17,13 +17,29 @@
             width: 700px;
             padding: 15px;
             background-color: #ffffff;
+            background-image: linear-gradient(160deg, #ffffff, #eaeef3);
+            background-attachment: fixed;
             color: #202124;
             margin: 0;
+        }
+        /* The rule editor needs two columns, so only the collapsed popup can be narrower. */
+        body:has(#ruleFields[hidden]) {
+            width: 520px;
         }
         h2 {
             margin: 0;
             font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
             color: #202124;
+            /* Matches the slate-blue logo. */
+            background: linear-gradient(90deg, #1f3b57, #24689c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        :root[data-theme="dark"] h2 {
+            background-image: linear-gradient(90deg, #e8eaed, #8ab4f8);
         }
         .control-group {
             margin-bottom: 8px;
@@ -48,9 +64,13 @@
             gap: 10px;
         }
         .basics .control-group select {
-            flex: 1;
+            flex: none;
             min-width: 0;
-            width: auto;
+            width: 115px;
+        }
+        /* Keep the label beside the dropdown and pin both to the right edge of the window. */
+        .basics .control-group:last-child {
+            justify-content: flex-end;
         }
         .summary-row {
             display: flex;
@@ -64,15 +84,22 @@
         }
         input[type="number"] {
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             width: 60px;
             text-align: center;
             font-size: 14px;
         }
+        /* The spinner arrows take space on the right and push the number off center. */
+        input[type="number"] {
+            appearance: textfield;
+        }
+        input[type="number"]::-webkit-inner-spin-button {
+            appearance: none;
+        }
         select {
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             font-size: 14px;
             width: 220px;
@@ -117,16 +144,21 @@
             font-size: 13px;
             padding: 6px 12px;
             font-weight: bold;
-            width: auto;
+            width: 104px;
+            border: 2px solid #137333;
         }
         #toggleTimer:hover {
             background-color: #187031;
         }
         #toggleTimer.running {
             background-color: #d93025;
+            border-color: #a50e0e;
         }
         #toggleTimer.running:hover {
             background-color: #b31412;
+        }
+        :root[data-theme="dark"] #toggleTimer, :root[data-theme="dark"] #toggleTimer.running {
+            border-color: rgba(255, 255, 255, 0.45);
         }
         .link-button {
             background-color: transparent;
@@ -152,6 +184,22 @@
         #status:has(#statusText:empty) {
             display: none;
         }
+        #accessNote {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #b06000;
+            margin-top: 4px;
+        }
+        #accessNote[hidden] {
+            display: none;
+        }
+        #accessNote .link-button {
+            padding: 0 5px;
+            font-size: 12px;
+        }
         #status .link-button {
             padding: 0 5px;
             font-size: 12px;
@@ -167,6 +215,17 @@
         .title-group {
             display: flex;
             align-items: center;
+        }
+        .timer-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #shortcutHint {
+            font-size: 11px;
+            color: #3c4043;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
         }
         .title-group img {
             margin-right: 10px;
@@ -187,7 +246,7 @@
         }
         .note {
             font-size: 11px;
-            color: #5f6368;
+            color: #3c4043;
             margin-bottom: 10px;
             text-align: center;
             font-style: italic;
@@ -244,7 +303,7 @@
         }
         #effectiveRule {
             font-size: 11px;
-            color: #5f6368;
+            color: #3c4043;
             white-space: pre-line;
         }
         .rules-row {
@@ -260,12 +319,13 @@
             color-scheme: dark;
             body {
                 background-color: #202124;
+                background-image: linear-gradient(160deg, #202124, #1d2127);
                 color: #e8eaed;
             }
             h2, legend {
                 color: #e8eaed;
             }
-            label, .note, #effectiveRule {
+            label, .note, #effectiveRule, #shortcutHint {
                 color: #9aa0a6;
             }
             #pageLabel {
@@ -291,6 +351,9 @@
             #status {
                 color: #81c995;
             }
+            #accessNote {
+                color: #fdd663;
+            }
             .link-button {
                 color: #8ab4f8;
             }
@@ -307,7 +370,10 @@
             <img src="icons/icon128.png" alt="Logo" width="32" height="32">
             <h2>Skilly's Auto Tab Switcher</h2>
         </div>
-        <button id="toggleTimer">Start Timer</button>
+        <div class="timer-group">
+            <span id="shortcutHint" hidden></span>
+            <button id="toggleTimer">Start Timer</button>
+        </div>
     </div>
     <div class="basics">
     <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
@@ -406,6 +472,7 @@
         <span>Saved Rules: <span id="ruleCount">0</span></span>
         <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
     </div>
+    <div id="accessNote" hidden><span>Auto Scroll and On hover need site access.</span><button id="allowAccess" class="link-button" title="Let Auto Scroll and Pause On Hover run on web pages.">Allow</button></div>
     <div id="status"><span id="statusText"></span><button id="undo" class="link-button" hidden>Undo</button></div>
     <script src="shared.js"></script>
     <script src="popup.js"></script>

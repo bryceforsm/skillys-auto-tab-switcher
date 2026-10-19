@@ -4,7 +4,7 @@
 
 When the extension is submitted, the Chrome Web Store flags `<all_urls>` (in `host_permissions` and `content_scripts.matches`) as a broad host permission. That triggers an in-depth review and delays publishing.
 
-**Decision:** keep `<all_urls>` and accept the longer review.
+**Decision:** superseded. The extension now requests `<all_urls>` as an optional host permission (see Alternatives considered), which avoids the broad host permission flag at install. The reasoning below still explains why access is needed once Auto Scroll or Pause On Hover is on.
 
 ### Why stores are concerned
 
@@ -37,4 +37,4 @@ Only `content_scroll.js` needs it, for Auto Scroll and Pause On Hover. Tab switc
 
 - **`activeTab`:** rejected. It only grants access right after a user gesture, but rotation runs unattended.
 - **Specific sites in `host_permissions`:** rejected. The sites are chosen by the user and are often internal or self-hosted.
-- **`optional_host_permissions`:** possible but not done. `<all_urls>` would move to `optional_host_permissions` and the content script would be registered at runtime with `chrome.scripting.registerContentScripts`. Chrome would ask the user to allow all sites when they turn on Auto Scroll or Pause On Hover. That would avoid the review flag, but it adds a permission prompt and more code.
+- **`optional_host_permissions`:** adopted in place of the decision above. `<all_urls>` is an optional host permission and the content script is registered at runtime with `chrome.scripting.registerContentScripts` (`syncContentScript()` in `background.js`). Chrome asks for access the first time the user turns on Auto Scroll or Pause On Hover. The rules page shows an **Allow site access** notice if the prompt was declined or the access was revoked. Until granted, scrolling and hover pause do nothing and everything else works.

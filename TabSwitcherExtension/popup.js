@@ -50,10 +50,51 @@ async function init() {
     $('undo').addEventListener('click', undoReset);
     $('toggleTimer').addEventListener('click', toggleTimer);
     $('manageRules').addEventListener('click', manageRules);
+    $('allowAccess').addEventListener('click', () => requestSiteAccess());
+    chrome.permissions.onAdded.addListener(showAccessNote);
+    chrome.permissions.onRemoved.addListener(showAccessNote);
 
     const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
     timerRunning = !!response?.running;
     updateButtonState();
+    showShortcut();
+    setInterval(refreshCountdown, 1000);
+    refreshCountdown();
+
+    // The keyboard shortcut can start or stop the timer while the popup is open.
+    chrome.storage.onChanged.addListener(async (changes, area) => {
+        if (area !== 'session' || !changes.running) return;
+        const state = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
+        timerRunning = !!state?.running;
+        updateButtonState();
+    });
+}
+
+let shortcutText = '';
+let countdownText = '';
+
+async function showShortcut() {
+    const commands = await chrome.commands.getAll();
+    shortcutText = commands.find((c) => c.name === 'toggle-timer')?.shortcut || '';
+    renderHint();
+}
+
+function renderHint() {
+    const text = [countdownText, shortcutText].filter(Boolean).join(' \u00b7 ');
+    $('shortcutHint').textContent = text;
+    $('shortcutHint').hidden = !text;
+}
+
+async function refreshCountdown() {
+    const state = timerRunning ? await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId }) : null;
+    let text = '';
+    if (state?.running) {
+        if (state.loading) text = 'Loading page';
+        else if (state.paused) text = `Paused at ${state.seconds}s`;
+        else text = `Next tab in ${state.seconds}s`;
+    }
+    countdownText = text;
+    renderHint();
 }
 
 function fillModeSelect(select) {
@@ -78,11 +119,18 @@ function currentInterval() {
 }
 
 function saveGeneral(committed) {
+    const neededBefore = needsSiteAccess(defaults);
     defaults.switchInterval = currentInterval();
     defaults.pauseMode = $('pauseMode').value;
     if (committed) $('interval').value = defaults.switchInterval;
+    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ switchInterval: defaults.switchInterval, pauseMode: defaults.pauseMode });
+    showAccessNote();
     updateEffectiveRule();
+}
+
+async function showAccessNote() {
+    $('accessNote').hidden = !needsSiteAccess(defaults) || await hasSiteAccess();
 }
 
 // ---------- Per-page rule editor ----------
@@ -131,6 +179,7 @@ function loadEditorRule() {
 }
 
 function onRuleEdit(committed) {
+    const neededBefore = needsSiteAccess(defaults);
     const key = editorKey();
     const rule = {};
     const mode = $('ruleMode').value;
@@ -156,6 +205,7 @@ function onRuleEdit(committed) {
     } else {
         delete rules[key];
     }
+    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ pageRules: rules });
     showStatus('', false);
     // Show the values as they were clamped and saved.
@@ -212,6 +262,7 @@ function updateEffectiveRule() {
 
 function renderRuleState() {
     $('ruleCount').textContent = Object.keys(rules).length;
+    showAccessNote();
     if (!pageKeys) return;
     for (const scope of ['page', 'site']) {
         const has = !!(pageKeys[scope] && rules[pageKeys[scope]]);
@@ -254,4 +305,5 @@ function updateButtonState() {
     const button = $('toggleTimer');
     button.textContent = timerRunning ? 'Stop Timer' : 'Start Timer';
     button.classList.toggle('running', timerRunning);
+    refreshCountdown();
 }
