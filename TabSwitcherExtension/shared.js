@@ -2,7 +2,8 @@
 
 const REFRESH_MODES = {
     never: 'Disable',
-    switch: 'Every switch',
+    switch: 'On switch',
+    preload: 'Before switch',
     stale: 'On switch, if older than',
     background: 'Periodically, in background'
 };

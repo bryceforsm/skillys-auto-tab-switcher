@@ -13,7 +13,7 @@ This extension automatically switches between your open tabs at an interval you 
 ## Features
 
 - **Auto Tab Switching:** Cycles through all open tabs in the window.
-- **Per-Page Rules:** Override how long the page is shown, refresh and auto scroll for a whole site or a single page. Refresh can happen every switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
+- **Per-Page Rules:** Override how long the page is shown, refresh and auto scroll for a whole site or a single page. Refresh can happen on switch, before switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
 - **Window Isolation:** Works only on the window where it was activated.
 - **Auto Scroll:** Automatically scrolls down the page at a configurable speed.
 - **Pause Modes:** Configurable options to pause the timer on user activity or when hovering over the page.
@@ -69,7 +69,8 @@ This extension automatically switches between your open tabs at an interval you 
     - **Defaults for Pages Without a Rule:**
         - **Default Refresh** sets how pages without their own refresh rule are refreshed:
             - **Disable:** never reload.
-            - **Every switch:** reload each time the tab is shown.
+            - **On switch:** reload each time the tab is shown.
+            - **Before switch:** reload the next tab about 5 seconds before its turn, so it is already fresh when shown. Tabs that were not reloaded early are reloaded on switch.
             - **On switch, if older than N min:** reload when shown, but only if the page was last loaded more than N minutes ago.
             - **Periodically, in background:** reload hidden tabs every N minutes so they are ready when shown, and on switch if the page is older than N minutes.
         - **Default Auto Scroll** applies to pages without their own scroll rule. Set it to **Enable** to show **Scroll to Top on Switch**, **Scroll Delay** (seconds) and **Scroll Speed** (1-100).

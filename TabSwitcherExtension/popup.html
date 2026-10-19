@@ -72,7 +72,7 @@
         }
         input[type="number"] {
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             width: 60px;
             text-align: center;
@@ -87,7 +87,7 @@
         }
         select {
             padding: 4px;
-            border: 1px solid #dadce0;
+            border: 1px solid #bdc1c6;
             border-radius: 4px;
             font-size: 14px;
             width: 220px;
@@ -132,16 +132,24 @@
             font-size: 13px;
             padding: 6px 12px;
             font-weight: bold;
-            width: auto;
+            width: 104px;
+            border: 2px solid #137333;
         }
         #toggleTimer:hover {
             background-color: #187031;
         }
         #toggleTimer.running {
             background-color: #d93025;
+            border-color: #a50e0e;
         }
         #toggleTimer.running:hover {
             background-color: #b31412;
+        }
+        :root[data-theme="dark"] #toggleTimer, :root[data-theme="dark"] #toggleTimer.running {
+            border-color: rgba(255, 255, 255, 0.45);
+        }
+        :root[data-theme="dark"] .title-group img {
+            filter: grayscale(1);
         }
         .link-button {
             background-color: transparent;
@@ -190,7 +198,7 @@
         }
         #shortcutHint {
             font-size: 11px;
-            color: #5f6368;
+            color: #3c4043;
             white-space: nowrap;
             font-variant-numeric: tabular-nums;
         }
@@ -213,7 +221,7 @@
         }
         .note {
             font-size: 11px;
-            color: #5f6368;
+            color: #3c4043;
             margin-bottom: 10px;
             text-align: center;
             font-style: italic;
@@ -270,7 +278,7 @@
         }
         #effectiveRule {
             font-size: 11px;
-            color: #5f6368;
+            color: #3c4043;
             white-space: pre-line;
         }
         .rules-row {

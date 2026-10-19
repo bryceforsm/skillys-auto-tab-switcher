@@ -3,6 +3,8 @@ importScripts('shared.js');
 const PAUSE_COLOR = '#d93025';
 const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than this
 const LOAD_TIMEOUT_MS = 30000;
+const PRELOAD_LEAD_MS = 5000; // how long before a switch the "Before switch" refresh runs
+const PRELOAD_VALID_MS = 20000;
 const HEARTBEAT_ALARM = 'heartbeat';
 const STOP_SCROLLING = { command: 'stopScrolling' };
 
@@ -95,6 +97,7 @@ function restartCountdown(w) {
     w.deadline = null;
     w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
     w.shownSeconds = undefined;
+    w.preloadChecked = false;
     resume(w);
     persistRunning();
 }
@@ -199,6 +202,10 @@ function tick() {
             });
         } else {
             w.shownSeconds = Math.ceil(remainingMs(w) / 1000); // same value the badge shows until the next tick
+            if (w.deadline !== null && !w.preloadChecked && w.deadline - now <= PRELOAD_LEAD_MS) {
+                w.preloadChecked = true;
+                preloadNext(windowId, w);
+            }
             renderBadge(windowId);
         }
     }
@@ -212,14 +219,7 @@ async function switchTab(windowId, w) {
         return;
     }
 
-    const currentIndex = tabs.findIndex((t) => t.active);
-    const current = tabs[currentIndex];
-    let next = tabs[(currentIndex + 1) % tabs.length];
-    if (settings.skipPinned) {
-        // Stays on the current tab when every other tab is pinned.
-        const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
-        next = others.find((t) => !t.pinned) || current || next;
-    }
+    const { current, next } = pickNext(tabs);
 
     // With a single tab we "switch" to the same tab so its refresh rule still applies.
     if (!current || next.id !== current.id) {
@@ -236,7 +236,7 @@ async function switchTab(windowId, w) {
     if (windows.get(windowId) !== w) return;
     w.activeUrl = tab.url || tab.pendingUrl;
 
-    if (shouldRefreshOnSwitch(tab)) {
+    if (shouldRefreshOnSwitch(w, tab)) {
         waitForLoad(w, tab.id);
         await chrome.tabs.reload(tab.id).catch(() => finishWait(w, tab.id));
     } else if (tab.status !== 'complete') {
@@ -247,11 +247,40 @@ async function switchTab(windowId, w) {
     }
 }
 
-function shouldRefreshOnSwitch(tab) {
+function pickNext(tabs) {
+    const currentIndex = tabs.findIndex((t) => t.active);
+    const current = tabs[currentIndex];
+    let next = tabs[(currentIndex + 1) % tabs.length];
+    if (settings.skipPinned) {
+        // Stays on the current tab when every other tab is pinned.
+        const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
+        next = others.find((t) => !t.pinned) || current || next;
+    }
+    return { current, next };
+}
+
+// Reloads the next tab shortly before its turn, so it is already fresh when shown.
+async function preloadNext(windowId, w) {
+    const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
+    if (windows.get(windowId) !== w) return;
+    const { current, next } = pickNext(tabs);
+    if (!next || (current && next.id === current.id)) return;
+    if (refreshRuleFor(settings, next.url || next.pendingUrl).mode !== 'preload') return;
+    w.preloaded = { tabId: next.id, at: Date.now() };
+    chrome.tabs.reload(next.id).catch(() => { w.preloaded = null; });
+}
+
+function shouldRefreshOnSwitch(w, tab) {
     const rule = refreshRuleFor(settings, tab.url || tab.pendingUrl);
     switch (rule.mode) {
         case 'switch':
             return true;
+        case 'preload': {
+            // Reload now if the early reload didn't happen or was long enough ago to be stale.
+            const p = w.preloaded;
+            w.preloaded = null;
+            return !(p && p.tabId === tab.id && Date.now() - p.at < PRELOAD_VALID_MS);
+        }
         case 'stale':
         case 'background':
             return Date.now() - (tabLoadedAt[tab.id] || 0) >= rule.minutes * 60000;
