@@ -17,6 +17,8 @@
             width: 700px;
             padding: 15px;
             background-color: #ffffff;
+            background-image: linear-gradient(160deg, #ffffff, #eaeef3);
+            background-attachment: fixed;
             color: #202124;
             margin: 0;
         }
@@ -27,7 +29,17 @@
         h2 {
             margin: 0;
             font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
             color: #202124;
+            /* Matches the slate-blue logo. */
+            background: linear-gradient(90deg, #1f3b57, #24689c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        :root[data-theme="dark"] h2 {
+            background-image: linear-gradient(90deg, #e8eaed, #8ab4f8);
         }
         .control-group {
             margin-bottom: 8px;
@@ -147,9 +159,6 @@
         }
         :root[data-theme="dark"] #toggleTimer, :root[data-theme="dark"] #toggleTimer.running {
             border-color: rgba(255, 255, 255, 0.45);
-        }
-        :root[data-theme="dark"] .title-group img {
-            filter: grayscale(1);
         }
         .link-button {
             background-color: transparent;
@@ -294,6 +303,7 @@
             color-scheme: dark;
             body {
                 background-color: #202124;
+                background-image: linear-gradient(160deg, #202124, #1d2127);
                 color: #e8eaed;
             }
             h2, legend {
