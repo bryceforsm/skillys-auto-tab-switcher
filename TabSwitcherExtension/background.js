@@ -404,7 +404,7 @@ function updatePause(w) {
 }
 
 function scrollSignature(s) {
-    return JSON.stringify([s.pauseMode, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
+    return JSON.stringify([s.pauseMode, s.resumeDelay, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
 }
 
 function applySettingsChange(prev) {
@@ -445,7 +445,8 @@ function sendToTab(tabId, message) {
 // onArrival applies the page's "scroll to top" option. Resumes and setting changes keep the position.
 async function startScrolling(tabId, onArrival) {
     const tab = await chrome.tabs.get(tabId).catch(() => null);
-    if (!tab) return;
+    // The timer may have stopped while we waited, and scrolling only runs with the timer.
+    if (!tab || !windows.has(tab.windowId)) return;
     const scroll = scrollSettingsFor(settings, tab.url);
     const pauseOnHover = settings.pauseMode === 'hover';
     if (!scroll.autoScroll && !pauseOnHover) {
@@ -457,6 +458,7 @@ async function startScrolling(tabId, onArrival) {
         autoScroll: scroll.autoScroll,
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
+        resumeDelay: settings.resumeDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
         pauseOnHover,
         popupOpen: popupWindows.has(tab.windowId)
@@ -465,6 +467,7 @@ async function startScrolling(tabId, onArrival) {
         // Tabs opened before install or update have no content script yet.
         try {
             await chrome.scripting.executeScript({ target: { tabId }, files: ['content_scroll.js'] });
+            if (!windows.has(tab.windowId)) return;
             await chrome.tabs.sendMessage(tabId, message);
         } catch (e) {
             // Restricted pages (chrome://, the web store) cannot be scripted.

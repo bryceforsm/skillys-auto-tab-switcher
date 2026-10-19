@@ -7,6 +7,7 @@
     let pauseOnHover = false;
     let speed = 20;
     let delay = 0;
+    let resumeDelay = 0; // seconds to stay paused after the pointer leaves, same as the timer's Resume After
     let scrollingActive = false; // true once the start delay has passed
     let hovering = false;
     let popupOpen = false;
@@ -104,13 +105,13 @@
     }
 
     function startResumeDelay() {
-        if (pauseOnHover && delay > 0 && scrollingActive) {
+        if (pauseOnHover && resumeDelay > 0 && scrollingActive) {
             resumeDelaying = true;
             clearTimeout(resumeTimeoutId);
             resumeTimeoutId = setTimeout(() => {
                 resumeDelaying = false;
                 update();
-            }, delay * 1000);
+            }, resumeDelay * 1000);
         }
     }
 
@@ -122,6 +123,7 @@
             popupOpen = !!request.popupOpen;
             speed = Number(request.speed) || 20;
             delay = Math.max(0, Number(request.delay) || 0);
+            resumeDelay = Math.max(0, Number(request.resumeDelay) || 0);
             if (autoScroll && request.scrollToTop) window.scrollTo(0, 0);
             if (autoScroll && delay > 0) {
                 startTimeoutId = setTimeout(() => {
