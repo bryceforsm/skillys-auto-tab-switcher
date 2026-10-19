@@ -7,17 +7,14 @@
     let pauseOnHover = false;
     let speed = 20;
     let delay = 0;
-    let resumeDelay = 0; // seconds to stay paused after the pointer leaves, same as the timer's Resume After
     let scrollingActive = false; // true once the start delay has passed
     let hovering = false;
-    let popupOpen = false;
-    let resumeDelaying = false;
+    let held = false; // the background says the timer is held (hover delay or popup), so scrolling waits too
     let reportedHover = null;
     let frameId = null;
     let lastFrame = 0;
     let carry = 0; // distance owed but smaller than one device pixel
     let startTimeoutId = null;
-    let resumeTimeoutId = null;
 
     function contextAlive() {
         try {
@@ -32,12 +29,13 @@
             cleanup();
             return;
         }
-        const pausedByHover = pauseOnHover && (hovering || resumeDelaying);
-        if (scrollingActive && !pausedByHover && !(pauseOnHover && popupOpen)) startLoop(); else stopLoop();
+        const pausedByHover = pauseOnHover && (hovering || held);
+        if (scrollingActive && !pausedByHover) startLoop(); else stopLoop();
 
-        if (pauseOnHover && pausedByHover !== reportedHover) {
-            reportedHover = pausedByHover;
-            chrome.runtime.sendMessage({ command: 'hoverStateChange', isHovering: pausedByHover }).catch(() => {});
+        // The background applies Resume After to the timer and tells us when to resume.
+        if (pauseOnHover && hovering !== reportedHover) {
+            reportedHover = hovering;
+            chrome.runtime.sendMessage({ command: 'hoverStateChange', isHovering: hovering }).catch(() => {});
         }
     }
 
@@ -79,20 +77,13 @@
 
     function reset() {
         scrollingActive = false;
-        resumeDelaying = false;
-        // Hover state from an earlier visit is stale, since mouseout does not fire when the tab is hidden.
-        hovering = false;
-        reportedHover = null;
         stopLoop();
         clearTimeout(startTimeoutId);
-        clearTimeout(resumeTimeoutId);
     }
 
     function onMouseOver() {
         if (hovering) return;
         hovering = true;
-        resumeDelaying = false;
-        clearTimeout(resumeTimeoutId);
         update();
     }
 
@@ -100,19 +91,7 @@
         // relatedTarget is null only when the pointer leaves the page entirely.
         if (e.relatedTarget !== null) return;
         hovering = false;
-        startResumeDelay();
         update();
-    }
-
-    function startResumeDelay() {
-        if (pauseOnHover && resumeDelay > 0 && scrollingActive) {
-            resumeDelaying = true;
-            clearTimeout(resumeTimeoutId);
-            resumeTimeoutId = setTimeout(() => {
-                resumeDelaying = false;
-                update();
-            }, resumeDelay * 1000);
-        }
     }
 
     function onMessage(request, sender, sendResponse) {
@@ -120,10 +99,9 @@
             reset();
             autoScroll = !!request.autoScroll;
             pauseOnHover = !!request.pauseOnHover;
-            popupOpen = !!request.popupOpen;
+            held = !!request.paused;
             speed = Number(request.speed) || 20;
             delay = Math.max(0, Number(request.delay) || 0);
-            resumeDelay = Math.max(0, Number(request.resumeDelay) || 0);
             if (autoScroll && request.scrollToTop) window.scrollTo(0, 0);
             if (autoScroll && delay > 0) {
                 startTimeoutId = setTimeout(() => {
@@ -134,15 +112,16 @@
                 scrollingActive = autoScroll;
             }
             update();
-        } else if (request.command === 'popupState') {
-            const wasOpen = popupOpen;
-            popupOpen = !!request.open;
-            if (wasOpen && !popupOpen && !hovering) startResumeDelay();
+        } else if (request.command === 'pauseState') {
+            held = !!request.paused;
             update();
         } else if (request.command === 'stopScrolling') {
             reset();
+            // Hover state from an earlier visit is stale, since mouseout does not fire when the tab is hidden.
+            hovering = false;
+            reportedHover = null;
+            held = false;
             pauseOnHover = false;
-            popupOpen = false;
         } else {
             return;
         }

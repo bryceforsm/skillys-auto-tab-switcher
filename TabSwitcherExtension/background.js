@@ -397,14 +397,20 @@ function handleHover(isHovering, tab) {
     }, settings.resumeDelay * 1000);
 }
 
+// Scrolling follows the timer: it holds while the timer is held by hover or the popup, and resumes with it.
+function scrollHeld(w) {
+    return w.hoverPaused || popupPaused(w);
+}
+
 function updatePause(w) {
     if (isPaused(w)) pause(w); else resume(w);
+    if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'pauseState', paused: scrollHeld(w) });
     persistRunning();
     renderBadge(w.windowId);
 }
 
 function scrollSignature(s) {
-    return JSON.stringify([s.pauseMode, s.resumeDelay, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
+    return JSON.stringify([s.pauseMode, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
 }
 
 function applySettingsChange(prev) {
@@ -458,10 +464,9 @@ async function startScrolling(tabId, onArrival) {
         autoScroll: scroll.autoScroll,
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
-        resumeDelay: settings.resumeDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
         pauseOnHover,
-        popupOpen: popupWindows.has(tab.windowId)
+        paused: scrollHeld(windows.get(tab.windowId))
     };
     chrome.tabs.sendMessage(tabId, message).catch(async () => {
         // Tabs opened before install or update have no content script yet.
@@ -544,7 +549,6 @@ chrome.runtime.onConnect.addListener((port) => {
         const w = windows.get(windowId);
         if (!w) return;
         updatePause(w);
-        if (w.activeTabId !== null) sendToTab(w.activeTabId, { command: 'popupState', open: popupWindows.has(windowId) });
     };
     port.onMessage.addListener((msg) => {
         windowId = msg.windowId;
