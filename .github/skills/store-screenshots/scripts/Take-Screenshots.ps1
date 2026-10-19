@@ -6,6 +6,9 @@
     Copies TabSwitcherExtension to a temp folder, injects assets/mock.js (fake chrome.* APIs with sample
     settings), renders each page in headless Edge or Chrome, then writes:
       Screenshots/readme/screenshot.png   Popup with out-of-box settings, light/dark diagonal split, used by the README
+      Screenshots/readme/popup-light.png  Popup with a page rule, unframed, used by the README
+      Screenshots/readme/popup-dark.png
+      Screenshots/readme/popup-defaults.png  Out-of-box popup, unframed, light theme
       Screenshots/webstore/popup-light.png       1280x800 store screenshots
       Screenshots/webstore/popup-dark.png
       Screenshots/webstore/popup-defaults.png    Out-of-box settings, no rules, timer stopped
@@ -56,15 +59,29 @@ try {
     Add-Type -AssemblyName System.Drawing
 
     # The popup's height depends on which rows are visible, so measure it instead of hard-coding it.
-    $popupWidth = 730
-    $probe = [Drawing.Bitmap]::FromFile((Save-Shot 'popup.html?theme=light&defaults=1&measure=1' 'measure.png' $popupWidth 1000))
-    $popupHeight = $probe.Height
-    while ($popupHeight -gt 1) {
-        $pixel = $probe.GetPixel([int]($popupWidth / 2), $popupHeight - 1)
-        if (-not ($pixel.R -eq 255 -and $pixel.G -eq 0 -and $pixel.B -eq 255)) { break }
-        $popupHeight--
+    function Measure-PopupHeight([string]$Query, [int]$Width) {
+        $probe = [Drawing.Bitmap]::FromFile((Save-Shot $Query 'measure.png' $Width 1000))
+        $height = $probe.Height
+        while ($height -gt 1) {
+            $pixel = $probe.GetPixel([int]($Width / 2), $height - 1)
+            if (-not ($pixel.R -eq 255 -and $pixel.G -eq 0 -and $pixel.B -eq 255)) { break }
+            $height--
+        }
+        $probe.Dispose()
+        $height
     }
-    $probe.Dispose()
+
+    # defaults=1 shows the collapsed popup, which is 520px wide plus 15px padding on each side.
+    $popupWidth = 550
+    $popupHeight = Measure-PopupHeight 'popup.html?theme=light&defaults=1&measure=1' $popupWidth
+
+    # The expanded popup (page rule shown) is 700px wide plus padding.
+    $ruleWidth = 730
+    $ruleHeight = Measure-PopupHeight 'popup.html?theme=light&measure=1' $ruleWidth
+    $readmePopups = @(
+        Save-Shot 'popup.html?theme=light' 'readme-popup-light.png' $ruleWidth $ruleHeight
+        Save-Shot 'popup.html?theme=dark' 'readme-popup-dark.png' $ruleWidth $ruleHeight
+    )
 
     $rawLight = Save-Shot 'popup.html?theme=light&defaults=1' 'raw-light.png' $popupWidth $popupHeight
     $rawDark = Save-Shot 'popup.html?theme=dark&defaults=1' 'raw-dark.png' $popupWidth $popupHeight
@@ -112,13 +129,16 @@ try {
     New-Item -ItemType Directory -Path $readme -Force | Out-Null
     $split.Save((Join-Path $readme 'screenshot.png'), [Drawing.Imaging.ImageFormat]::Png)
     $split.Dispose()
+    Copy-Item -LiteralPath $readmePopups[0] -Destination (Join-Path $readme 'popup-light.png') -Force
+    Copy-Item -LiteralPath $readmePopups[1] -Destination (Join-Path $readme 'popup-dark.png') -Force
+    Copy-Item -LiteralPath $rawLight -Destination (Join-Path $readme 'popup-defaults.png') -Force
 
     $screens = Join-Path $repo 'Screenshots\webstore'
     New-Item -ItemType Directory -Path $screens -Force | Out-Null
     Copy-Item -LiteralPath $store -Destination $screens -Force
 
     Write-Host "Popup measured at ${popupWidth}x$popupHeight."
-    Write-Host 'Wrote Screenshots/readme/screenshot.png and Screenshots/webstore/*.png.'
+    Write-Host 'Wrote Screenshots/readme/*.png and Screenshots/webstore/*.png.'
 }
 finally {
     Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

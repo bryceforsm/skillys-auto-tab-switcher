@@ -20,6 +20,10 @@
             color: #202124;
             margin: 0;
         }
+        /* The rule editor needs two columns, so only the collapsed popup can be narrower. */
+        body:has(#ruleFields[hidden]) {
+            width: 520px;
+        }
         h2 {
             margin: 0;
             font-size: 16px;

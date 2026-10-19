@@ -38,7 +38,7 @@
         windows: { getCurrent: async () => ({ id: 1 }) },
         commands: { getAll: async () => [{ name: 'toggle-timer', shortcut: 'Alt+Shift+S' }] },
         tabs: { query: async () => [{ id: 1, url: 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
+        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox, seconds: 12, paused: false, loading: false }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
