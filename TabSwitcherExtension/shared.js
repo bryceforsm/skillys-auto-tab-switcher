@@ -117,6 +117,12 @@ function hasSiteAccess() {
     return chrome.permissions.contains({ origins: ['<all_urls>'] });
 }
 
+// Firefox can open its shortcut manager directly. Chrome needs its settings page opened in a tab.
+function openShortcutSettings() {
+    if (typeof chrome.commands.openShortcutSettings === 'function') return chrome.commands.openShortcutSettings();
+    return chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+}
+
 // Needs a click or change handler. The prompt can close the popup, so callers must not wait on it.
 function requestSiteAccess() {
     return chrome.permissions.request({ origins: ['<all_urls>'] }).catch(() => false);

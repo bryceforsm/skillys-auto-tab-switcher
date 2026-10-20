@@ -2,7 +2,7 @@
 
 This extension automatically switches between your open tabs at an interval you set, and it can even refresh them for you. It's designed to only work in the window where you start it, so you can keep using other windows without any interruptions. This can be great for dashboards, monitoring tools, or presentations where you need to cycle through different information displays.
 
-**Compatibility:** Since it's built for Chrome, it works with all Chromium-based browsers like **Google Chrome**, **Microsoft Edge**, **Brave**, **Vivaldi**, and **Opera**.
+**Compatibility:** Built primarily for Chrome, so it works with all Chromium-based browsers like **Google Chrome**, **Microsoft Edge**, **Brave**, **Vivaldi**, and **Opera**. **Firefox** (140 or newer) is supported too, but Chrome is the main target and gets the most testing.
 
 **Why another tab rotator?** There are plenty of auto tab rotators/revolvers on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
@@ -47,7 +47,7 @@ This extension automatically switches between your open tabs at an interval you 
     - Click the extension icon to open the popup. Changes save as soon as you make them.
     - Set **Show Each Tab For** in seconds (minimum 5).
     - Select **Pause Timer** mode: Disable, On activity, or On hover. On hover also pauses while this popup is open. On hover can't detect the pointer on pages where Chrome blocks extensions, such as `chrome://` pages, the Chrome Web Store and the new tab page. Use On activity there.
-    - **Current Tab** shows the site or page open in the active tab and the settings in effect for it, each marked **page rule**, **site rule** or **default**. Next to the address, **Page rule** and **Site rule** light up when this page or its whole site has a rule. Click **Reset** on either one to remove that rule and go back to the defaults (click **Undo** if you change your mind). Click **Customize** to give it its own rule (pages that already have a rule open the editor straight away):
+    - **Current Tab** shows the site or page open in the active tab and the settings in effect for it, each marked **page rule**, **site rule** or **default**. Next to the address, **Page rule** and **Site rule** light up when this page or its whole site has a rule. Click **Reset** on either one to remove that rule and go back to the defaults (click **Undo** if you change your mind). Click **Page rule** or **Site rule** to open the editor for that scope and give it its own rule (the editor always starts collapsed):
         - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **Enable** shows its own scroll-to-top, delay and speed settings, and **Disable** turns scrolling off for that page.
@@ -55,7 +55,7 @@ This extension automatically switches between your open tabs at an interval you 
     - **Keyboard shortcut:** press **Alt+Shift+S** (**Control+Shift+S** on Mac) to start or stop the timer in the current window. To change it, open `chrome://extensions/shortcuts` (`edge://extensions/shortcuts` in Edge).
 
 2.  **More Settings and Rules:**
-    - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
+    - Click **Saved Rules** or **More Settings** in the popup, or right-click the extension icon and choose **Options**. Clicking either in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
     - **Timer:**
         - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
         - **Resume After** (shown next to Pause Timer when it is On activity or On hover) is how many seconds before the timer resumes. With **On activity** it is the time without mouse or keyboard use (at least 15, a Chrome limit). With **On hover** it is the time after the pointer leaves the page (at least 1).
@@ -83,6 +83,10 @@ This extension automatically switches between your open tabs at an interval you 
 2.  Open Chrome and go to `chrome://extensions`.
 3.  Enable **Developer mode**.
 4.  Click **Load unpacked** and select the extension folder.
+
+### Firefox
+
+Firefox needs a different manifest, so run `.\Build-Package.ps1` and use the `_firefox.zip` it writes. Go to `about:debugging`, choose **This Firefox**, click **Load Temporary Add-on** and pick the zip. Firefox 140 or newer is required.
 
 ## License
 

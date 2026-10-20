@@ -34,6 +34,7 @@ async function init() {
 
     watch('interval', saveGeneral);
     watch('pauseMode', saveGeneral);
+    setupSteppers();
     $('ruleScope').addEventListener('change', loadEditorRule);
     for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
         watch(id, onRuleEdit);
@@ -41,15 +42,22 @@ async function init() {
     $('ruleScrollSpeed').addEventListener('input', () => {
         $('ruleScrollSpeedDisplay').textContent = $('ruleScrollSpeed').value;
     });
-    $('customize').addEventListener('click', () => {
-        customizing = true;
-        updateVisibility();
-    });
+    for (const scope of ['page', 'site']) {
+        $(scope + 'Chip').addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            // Clicking the open chip again collapses the editor.
+            customizing = !(customizing && $('ruleScope').value === scope);
+            $('ruleScope').value = scope;
+            loadEditorRule();
+        });
+    }
     $('pageReset').addEventListener('click', () => resetRule('page'));
     $('siteReset').addEventListener('click', () => resetRule('site'));
     $('undo').addEventListener('click', undoReset);
     $('toggleTimer').addEventListener('click', toggleTimer);
+    $('shortcutHint').addEventListener('click', openShortcutSettings);
     $('manageRules').addEventListener('click', manageRules);
+    $('moreSettings').addEventListener('click', manageRules);
     $('allowAccess').addEventListener('click', () => requestSiteAccess());
     chrome.permissions.onAdded.addListener(showAccessNote);
     chrome.permissions.onRemoved.addListener(showAccessNote);
@@ -75,14 +83,14 @@ let countdownText = '';
 
 async function showShortcut() {
     const commands = await chrome.commands.getAll();
-    shortcutText = commands.find((c) => c.name === 'toggle-timer')?.shortcut || '';
+    shortcutText = commands.find((c) => c.name === 'toggle-timer')?.shortcut || 'Set shortcut';
     renderHint();
 }
 
 function renderHint() {
-    const text = [countdownText, shortcutText].filter(Boolean).join(' \u00b7 ');
-    $('shortcutHint').textContent = text;
-    $('shortcutHint').hidden = !text;
+    $('countdownHint').textContent = countdownText;
+    $('shortcutHint').textContent = shortcutText;
+    $('timerInfo').hidden = !countdownText && !shortcutText;
 }
 
 async function refreshCountdown() {
@@ -114,6 +122,44 @@ function watch(id, save) {
     }
 }
 
+// The +/- buttons step by 5 (1 with Shift), repeat while held and save like typing does.
+function setupSteppers() {
+    for (const field of document.querySelectorAll('.number-field:has(.step)')) {
+        const input = field.querySelector('input');
+        let timer = null;
+        const step = (dir, shift) => {
+            if (input.value === '') input.value = input.min;
+            else if (dir > 0) input.stepUp(shift ? 1 : 5);
+            else input.stepDown(shift ? 1 : 5);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const stop = () => {
+            if (timer === null) return;
+            clearTimeout(timer);
+            clearInterval(timer);
+            timer = null;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        for (const button of field.querySelectorAll('.step')) {
+            const dir = Number(button.dataset.dir);
+            button.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                step(dir, e.shiftKey);
+                timer = setTimeout(() => {
+                    timer = setInterval(() => step(dir, e.shiftKey), 70);
+                }, 400);
+            });
+            for (const type of ['pointerup', 'pointerleave', 'pointercancel']) button.addEventListener(type, stop);
+            // Keyboard activation has no pointer events.
+            button.addEventListener('click', (e) => {
+                if (e.detail !== 0) return;
+                step(dir, e.shiftKey);
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+    }
+}
+
 function currentInterval() {
     return clampInt($('interval').value, 5, 86400, defaults.switchInterval);
 }
@@ -142,12 +188,9 @@ function setupPageEditor(tab) {
         $('pageRuleUnavailable').hidden = false;
         return;
     }
-    // Pages without a rule start collapsed to a one-line summary.
-    customizing = !!(rules[pageKeys.page] || (pageKeys.site && rules[pageKeys.site]));
+    // The editor always starts collapsed to the summary, and clicking a Page rule or Site rule chip opens it.
+    customizing = false;
     pageUrl = tab.url;
-    const url = new URL(tab.url);
-    $('pageLabel').textContent = url.host + url.pathname;
-    $('pageLabel').title = tab.url;
     // file:// pages have no host, so only a page rule makes sense.
     $('ruleScope').querySelector('option[value="site"]').disabled = !pageKeys.site;
     $('ruleScope').value = rules[pageKeys.page] || !pageKeys.site ? 'page' : 'site';
@@ -156,6 +199,14 @@ function setupPageEditor(tab) {
 
 function editorKey() {
     return pageKeys[$('ruleScope').value];
+}
+
+// With the site rule selected, only the host is shown because that is what the rule applies to.
+function updatePageLabel() {
+    const url = new URL(pageUrl);
+    const siteOnly = customizing && $('ruleScope').value === 'site';
+    $('pageLabel').textContent = siteOnly ? url.host : url.host + url.pathname;
+    $('pageLabel').title = siteOnly ? `Applies to every page on ${url.host}` : pageUrl;
 }
 
 function loadEditorRule() {
@@ -254,21 +305,40 @@ function updateEffectiveRule() {
         defaultRefresh: defaults.defaultRefresh,
         defaultScroll: defaults.defaultScroll
     };
-    $('effectiveRule').textContent =
-        `Show For in effect: ${describeDisplay(displaySecondsFor(s, pageUrl))} (${sectionSource('display')})` +
-        `\nRefresh in effect: ${describeRefresh(refreshRuleFor(s, pageUrl))} (${sectionSource('refresh')})` +
-        `\nAuto Scroll in effect: ${describeScroll(scrollSettingsFor(s, pageUrl))} (${sectionSource('scroll')})`;
+    const rows = [
+        ['Show For:', describeDisplay(displaySecondsFor(s, pageUrl)), sectionSource('display')],
+        ['Refresh:', describeRefresh(refreshRuleFor(s, pageUrl)), sectionSource('refresh')],
+        ['Auto Scroll:', describeScroll(scrollSettingsFor(s, pageUrl)), sectionSource('scroll')]
+    ];
+    $('effectiveRule').replaceChildren(...rows.map(([label, value, source]) => {
+        const item = document.createElement('div');
+        item.className = 'summary-item';
+        const name = document.createElement('span');
+        name.className = 'summary-label';
+        name.textContent = label;
+        const text = document.createElement('span');
+        text.className = 'summary-value';
+        text.append(`${value} `);
+        const from = document.createElement('span');
+        from.className = 'summary-source';
+        from.textContent = `(${source})`;
+        text.append(from);
+        item.append(name, text);
+        return item;
+    }));
 }
 
 function renderRuleState() {
     $('ruleCount').textContent = Object.keys(rules).length;
     showAccessNote();
     if (!pageKeys) return;
+    updatePageLabel();
     for (const scope of ['page', 'site']) {
         const has = !!(pageKeys[scope] && rules[pageKeys[scope]]);
         const name = scope === 'page' ? 'Page' : 'Site';
         $(scope + 'Chip').hidden = !pageKeys[scope];
         $(scope + 'Chip').classList.toggle('active', has);
+        $(scope + 'Chip').classList.toggle('selected', customizing && $('ruleScope').value === scope);
         $(scope + 'ChipText').textContent = has ? `${name} rule` : `No ${scope} rule`;
         $(scope + 'Reset').hidden = !has;
     }
@@ -278,16 +348,16 @@ function renderRuleState() {
 async function manageRules() {
     // Otherwise the rotation would switch away from the settings tab.
     if (timerRunning) await chrome.runtime.sendMessage({ command: 'stopTimer', windowId: currentWindowId });
-    chrome.runtime.openOptionsPage();
+    await chrome.runtime.openOptionsPage();
+    window.close();
 }
 
 // ---------- Form state ----------
 
 function updateVisibility() {
     $('ruleFields').hidden = !customizing;
-    $('customize').hidden = customizing;
     $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
-    $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value);
+    $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value).replace(/ \(min\):$/, '');
     $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
     $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
 }

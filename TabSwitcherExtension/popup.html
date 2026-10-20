@@ -12,7 +12,7 @@
             font-family: inherit;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
             /* Chrome caps popups at 800x600, so the layout is wide rather than tall. */
             width: 700px;
             padding: 15px;
@@ -33,13 +33,13 @@
             letter-spacing: 0.3px;
             color: #202124;
             /* Matches the slate-blue logo. */
-            background: linear-gradient(90deg, #1f3b57, #24689c);
+            background: linear-gradient(90deg, #1f3b57, #2b5f8c);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         :root[data-theme="dark"] h2 {
-            background-image: linear-gradient(90deg, #e8eaed, #8ab4f8);
+            background-image: linear-gradient(90deg, #e8eaed, #bcd0f2);
         }
         .control-group {
             margin-bottom: 8px;
@@ -48,35 +48,82 @@
             justify-content: space-between;
             gap: 8px;
         }
-        .basics, .rule-columns {
+        .basics {
             display: grid;
             /* minmax(0, ...) stops long unbreakable text (URLs) from widening a column. */
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             column-gap: 16px;
             align-items: start;
         }
-        .basics {
-            margin-bottom: 4px;
+        .form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 10px 14px;
+            margin-bottom: 10px;
         }
-        /* Keep each input next to its label instead of pinned to the column edge. */
+        /* The scroll options flow into the same grid as the other fields. */
+        #ruleScrollOptions {
+            display: contents;
+        }
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .form-field > label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .form-field select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .form-field input[type="range"] {
+            width: 100%;
+            margin: 4px 0;
+        }
+        .col-span-2 {
+            grid-column: span 2;
+        }
+        .check-field {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+        }
+        .split-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .split-input-row select {
+            flex: 1;
+        }
+        .form-field .number-field {
+            align-self: flex-start;
+        }
+        .split-input-row .number-field {
+            align-self: auto;
+        }
+        /* The two basics are sized by content, with the second pinned to the right edge. */
+        .basics {
+            grid-template-columns: auto auto;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        /* Labels sit above their inputs, and the second column is pinned to the right edge. */
         .basics .control-group {
-            justify-content: flex-start;
-            gap: 10px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        .basics .control-group > label {
+            font-size: 12px;
+            font-weight: 500;
         }
         .basics .control-group select {
             flex: none;
             min-width: 0;
-            width: 115px;
-        }
-        /* Keep the label beside the dropdown and pin both to the right edge of the window. */
-        .basics .control-group:last-child {
-            justify-content: flex-end;
-        }
-        .summary-row {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 8px;
+            width: 150px;
         }
         label {
             font-size: 14px;
@@ -85,7 +132,7 @@
         input[type="number"] {
             padding: 4px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 6px;
             width: 60px;
             text-align: center;
             font-size: 14px;
@@ -98,30 +145,66 @@
             appearance: none;
         }
         select {
-            padding: 4px;
+            padding: 5px 26px 5px 9px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 14px;
             width: 220px;
+            appearance: none;
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23202124' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
         }
-        .inline-inputs {
+        /* A number box with a +/- cue on the left and its unit on the right. */
+        .number-field {
+            display: inline-flex;
+            align-items: stretch;
+            border: 1px solid #bdc1c6;
+            border-radius: 8px;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+        .number-field:focus-within {
+            border-color: #1a73e8;
+        }
+        .number-field label {
             display: flex;
             align-items: center;
-            gap: 6px;
-            width: 220px;
+            font-size: 13px;
+            color: #5f6368;
         }
-        .inline-inputs select {
-            flex: 1;
-            min-width: 0;
-            width: auto;
+        .number-field .step {
+            width: 28px;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: #5f6368;
+            font-size: 15px;
+            line-height: 1;
         }
-        .inline-inputs span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+        .number-field .step:first-child {
+            border-right: 1px solid #bdc1c6;
         }
-        .inline-inputs input[type="number"] {
-            width: 50px;
+        .number-field .step:last-child {
+            border-left: 1px solid #bdc1c6;
+        }
+        .number-field .step:hover {
+            background-color: rgba(128, 134, 139, 0.2);
+            color: #202124;
+        }
+        .number-field .unit {
+            padding: 0 9px 0 0;
+            cursor: text;
+        }
+        .number-field input[type="number"] {
+            width: 40px;
+            padding: 5px 4px;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            text-align: right;
+            outline: none;
         }
         input[type="checkbox"] {
             width: 18px;
@@ -139,13 +222,36 @@
             transition: background-color 0.2s;
         }
         #toggleTimer {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
             background-color: #1e8e3e;
             color: white;
             font-size: 13px;
-            padding: 6px 12px;
-            font-weight: bold;
-            width: 104px;
-            border: 2px solid #137333;
+            padding: 5px 12px 7px;
+            font-weight: 700;
+            width: 116px;
+            border: 1px solid #137333;
+            border-radius: 8px;
+        }
+/* Drawn with borders because glyphs sit on the text baseline and look off-center. */
+        #toggleTimer::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 5px 0 5px 9px;
+            border-color: transparent transparent transparent currentColor;
+            position: relative;
+            top: 1px;
+        }
+        #toggleTimer.running::before {
+            width: 9px;
+            height: 9px;
+            border: 0;
+            background-color: currentColor;
+            border-radius: 1px;
         }
         #toggleTimer:hover {
             background-color: #187031;
@@ -156,9 +262,6 @@
         }
         #toggleTimer.running:hover {
             background-color: #b31412;
-        }
-        :root[data-theme="dark"] #toggleTimer, :root[data-theme="dark"] #toggleTimer.running {
-            border-color: rgba(255, 255, 255, 0.45);
         }
         .link-button {
             background-color: transparent;
@@ -208,33 +311,66 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 8px;
+            margin-bottom: 14px;
         }
         .title-group {
             display: flex;
             align-items: center;
         }
+        /* The info box sits left of the button, centered on it, and the button stays pinned to the right edge. */
         .timer-group {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        #shortcutHint {
+        .timer-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 108px;
+            height: 30px;
+            box-sizing: border-box;
+            padding: 1px 8px;
+            border: 1px solid #dadce0;
+            border-radius: 6px;
+            background-color: #f6f8fa;
             font-size: 11px;
+            line-height: 1.2;
             color: #3c4043;
             white-space: nowrap;
             font-variant-numeric: tabular-nums;
+        }
+        /* The box has a fixed size, so one line centers and two lines fill it without resizing. */
+        #countdownHint, #shortcutHint {
+            display: block;
+        }
+        #countdownHint:empty, #shortcutHint:empty {
+            display: none;
+        }
+        #shortcutHint {
+            width: auto;
+            padding: 0;
+            background: none;
+            font-size: 10px;
+            font-weight: 400;
+            color: #5f6368;
+            cursor: pointer;
+        }
+        #shortcutHint:hover {
+            background: none;
+            color: #1a73e8;
+            text-decoration: underline;
         }
         .title-group img {
             margin-right: 10px;
         }
         fieldset {
             border: 1px solid #dadce0;
-            border-radius: 6px;
-            padding: 8px;
-            margin: 0 0 10px 0;
+            border-radius: 8px;
+            background-color: #f6f8fa;
+            padding: 10px 12px;
+            margin: 0 0 12px 0;
             /* Fieldsets default to min-content width, which nowrap text would stretch. */
             min-width: 0;
         }
@@ -256,7 +392,9 @@
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e3e6ea;
         }
         #pageLabel {
             font-size: 12px;
@@ -277,9 +415,14 @@
             font-size: 12px;
             padding: 1px 8px;
             border: 1px solid #dadce0;
-            border-radius: 10px;
+            border-radius: 5px;
             color: #5f6368;
             white-space: nowrap;
+            cursor: pointer;
+        }
+        /* A ring marks the scope the editor below is changing. */
+        .rule-chip.selected {
+            box-shadow: 0 0 0 1px currentColor;
         }
         .rule-chip.active {
             background-color: #e8f0fe;
@@ -301,46 +444,159 @@
             color: inherit;
             text-decoration: underline;
         }
-        #effectiveRule {
+        /* The settings in effect and where each one comes from, with no panel of their own. */
+        .rules-summary {
             font-size: 11px;
-            color: #3c4043;
-            white-space: pre-line;
+            line-height: 1.4;
+        }
+        .summary-item {
+            display: flex;
+        }
+        .summary-label {
+            width: 86px;
+            flex-shrink: 0;
+            color: #5f6368;
+        }
+        .summary-value {
+            color: #202124;
+        }
+        .summary-source {
+            color: #5f6368;
         }
         .rules-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-size: 13px;
-            /* Mirrors the header line so the popup has a clear bottom edge. */
-            border-top: 1px solid #e0e0e0;
-            padding-top: 4px;
+            /* Runs edge to edge so the popup has a clear bottom section. */
+            margin: 0 -15px;
+            padding: 10px 15px 0;
+            border-top: 1px solid #d5d9de;
+        }
+        .count-pill {
+            padding: 3px 9px;
+            border: 1px solid #c8ccd2;
+            border-radius: 6px;
+            background-color: #f1f3f4;
+            font-size: 12px;
+            color: #3c4043;
+            width: auto;
+            font-weight: 400;
+        }
+        .count-pill:hover {
+            background-color: #e4e7ea;
+            color: #1a73e8;
         }
         :root[data-theme="dark"] {
             color-scheme: dark;
             body {
-                background-color: #202124;
-                background-image: linear-gradient(160deg, #202124, #1d2127);
-                color: #e8eaed;
+                background-color: #0f1115;
+                background-image: linear-gradient(160deg, #0f1115, #13161c);
+                color: #e6e8ec;
             }
             h2, legend {
-                color: #e8eaed;
+                color: #e6e8ec;
             }
-            label, .note, #effectiveRule, #shortcutHint {
+            label, .note {
                 color: #9aa0a6;
+            }
+            .timer-info {
+                background-color: #171a20;
+                border-color: #2b303b;
+                color: #d7dae0;
+            }
+            #shortcutHint {
+                color: #9aa0a6;
+            }
+            #shortcutHint:hover {
+                color: #8ab4f8;
+            }
+            .page-row {
+                border-bottom-color: #1f242c;
+            }
+            .rules-summary {
+                color: #d1d5db;
+            }
+            .summary-label, .summary-source {
+                color: #6b7280;
+            }
+            .summary-value {
+                color: #d1d5db;
+            }
+            .basics label {
+                color: #d7dae0;
             }
             #pageLabel {
                 color: #8ab4f8;
             }
             input[type="number"], select {
-                background-color: #292a2d;
-                color: #e8eaed;
-                border: 1px solid #5f6368;
+                background-color: #171a20;
+                color: #e6e8ec;
+                border: 1px solid #2b303b;
             }
-            fieldset, .header-container, .rules-row {
-                border-color: #5f6368;
+            select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23e6e8ec' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            }
+            .number-field {
+                background-color: #171a20;
+                border-color: #2b303b;
+            }
+            .number-field:focus-within {
+                border-color: #8ab4f8;
+            }
+            .number-field .step {
+                color: #9aa0a6;
+            }
+            .number-field .step:first-child {
+                border-right-color: #2b303b;
+            }
+            .number-field .step:last-child {
+                border-left-color: #2b303b;
+            }
+            .number-field .step:hover {
+                color: #e6e8ec;
+            }
+            .number-field label {
+                color: #9aa0a6;
+            }
+            .number-field input[type="number"] {
+                background: transparent;
+                border: none;
+            }
+            #toggleTimer {
+                background-color: #10b981;
+                border-color: #10b981;
+                color: #06231b;
+            }
+            #toggleTimer:hover {
+                background-color: #34d399;
+            }
+            #toggleTimer.running {
+                background-color: #f87171;
+                border-color: #f87171;
+                color: #2a0a0a;
+            }
+            #toggleTimer.running:hover {
+                background-color: #fca5a5;
+            }
+            fieldset {
+                border-color: #2b303b;
+                background-color: #13161c;
+            }
+            .rules-row {
+                border-top-color: #2b303b;
+            }
+            .count-pill {
+                background-color: #171a20;
+                border-color: #2b303b;
+                color: #c9ccd1;
+            }
+            .count-pill:hover {
+                background-color: #1f242c;
+                color: #8ab4f8;
             }
             .rule-chip {
-                border-color: #5f6368;
+                border-color: #2b303b;
                 color: #9aa0a6;
             }
             .rule-chip.active {
@@ -371,17 +627,25 @@
             <h2>Skilly's Auto Tab Switcher</h2>
         </div>
         <div class="timer-group">
-            <span id="shortcutHint" hidden></span>
+            <div id="timerInfo" class="timer-info" hidden>
+                <span id="countdownHint"></span>
+                <button type="button" id="shortcutHint" title="Change this shortcut in the browser's extension shortcut settings."></button>
+            </div>
             <button id="toggleTimer">Start Timer</button>
         </div>
     </div>
     <div class="basics">
     <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
-        <label for="interval">Show Each Tab For (sec):</label>
-        <input type="number" id="interval" min="5" max="86400" value="30">
+        <label for="interval">Show Each Tab For</label>
+        <span class="number-field">
+            <button type="button" class="step" data-dir="-1" aria-label="Decrease" title="Subtract 5 seconds. Hold to repeat, Shift for 1.">&minus;</button>
+            <input type="number" id="interval" min="5" max="86400" value="30">
+            <label for="interval" class="unit">sec</label>
+            <button type="button" class="step" data-dir="1" aria-label="Increase" title="Add 5 seconds. Hold to repeat, Shift for 1.">+</button>
+        </span>
     </div>
     <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or this popup is open).">
-        <label for="pauseMode">Pause Timer:</label>
+        <label for="pauseMode">Pause Timer</label>
         <select id="pauseMode">
             <option value="disable">Disable</option>
             <option value="activity">On activity</option>
@@ -405,72 +669,71 @@
                     </span>
                 </div>
             </div>
-            <div id="ruleFields" class="rule-columns">
-            <div>
-            <div class="control-group" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
-                <label for="ruleScope">Apply To:</label>
-                <select id="ruleScope">
-                    <option value="site">Whole site</option>
-                    <option value="page">This page only</option>
-                </select>
-            </div>
-            <div class="control-group" title="How long this site or page stays on screen before switching to the next tab.">
-                <label for="ruleDisplayMode">Show For:</label>
-                <div class="inline-inputs">
-                    <select id="ruleDisplayMode">
-                        <option value="default">Use default</option>
-                        <option value="custom">Custom</option>
+            <div id="ruleFields" class="form-grid">
+                <div class="form-field" title="A rule for this exact page (ignoring query string) takes priority over a rule for the whole site.">
+                    <label for="ruleScope">Apply To</label>
+                    <select id="ruleScope">
+                        <option value="site">Whole site</option>
+                        <option value="page">This page only</option>
                     </select>
-                    <span id="ruleDisplayWrap">
-                        <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
-                        <label for="ruleDisplaySeconds">sec</label>
+                </div>
+                <div class="form-field" title="How long this site or page stays on screen before switching to the next tab.">
+                    <label for="ruleDisplayMode">Show For</label>
+                    <div class="split-input-row">
+                        <select id="ruleDisplayMode">
+                            <option value="default">Use default</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <span id="ruleDisplayWrap" class="number-field">
+                            <input type="number" id="ruleDisplaySeconds" min="5" max="86400" value="30">
+                            <label for="ruleDisplaySeconds" class="unit">sec</label>
+                        </span>
+                    </div>
+                </div>
+                <div class="form-field" title="How this site or page is refreshed.">
+                    <label for="ruleMode">Refresh Mode</label>
+                    <select id="ruleMode"></select>
+                </div>
+                <div id="ruleMinutesWrap" class="form-field" title="Age limit or refresh period for this rule, in minutes.">
+                    <label for="ruleMinutes" id="ruleMinutesLabel">Refresh Every</label>
+                    <span class="number-field">
+                        <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
+                        <label for="ruleMinutes" class="unit">min</label>
                     </span>
                 </div>
-            </div>
-            <div class="control-group" title="How this site or page is refreshed.">
-                <label for="ruleMode">Refresh:</label>
-                <select id="ruleMode"></select>
-            </div>
-            <div id="ruleMinutesWrap" class="control-group" title="Age limit or refresh period for this rule, in minutes.">
-                <label for="ruleMinutes" id="ruleMinutesLabel">If Older Than (min):</label>
-                <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
-            </div>
-            </div>
-            <div>
-            <div class="control-group" title="Whether this site or page auto scrolls.">
-                <label for="ruleScrollMode">Auto Scroll:</label>
-                <select id="ruleScrollMode">
-                    <option value="default">Use default</option>
-                    <option value="off">Disable</option>
-                    <option value="on">Enable</option>
-                </select>
-            </div>
-            <div id="ruleScrollOptions">
-                <div class="control-group" title="Scroll back to the top of this page when switching to it.">
-                    <label for="ruleScrollToTop">Scroll to Top on Switch:</label>
-                    <input type="checkbox" id="ruleScrollToTop">
+                <div class="form-field" title="Whether this site or page auto scrolls.">
+                    <label for="ruleScrollMode">Auto Scroll</label>
+                    <select id="ruleScrollMode">
+                        <option value="default">Use default</option>
+                        <option value="off">Disable</option>
+                        <option value="on">Enable</option>
+                    </select>
                 </div>
-                <div class="control-group" title="Wait this many seconds before starting to scroll after switching.">
-                    <label for="ruleScrollDelay">Scroll Delay (sec):</label>
-                    <input type="number" id="ruleScrollDelay" min="0" max="3600" value="5">
-                </div>
-                <div class="control-group" title="How fast this page scrolls.">
-                    <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
-                    <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
+                <div id="ruleScrollOptions">
+                    <div class="form-field" title="Wait this many seconds before starting to scroll after switching.">
+                        <label for="ruleScrollDelay">Scroll Delay</label>
+                        <span class="number-field">
+                            <input type="number" id="ruleScrollDelay" min="0" max="3600" value="5">
+                            <label for="ruleScrollDelay" class="unit">sec</label>
+                        </span>
+                    </div>
+                    <div class="form-field" title="How fast this page scrolls.">
+                        <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
+                        <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
+                    </div>
+                    <div class="form-field check-field" title="Scroll back to the top of this page when switching to it.">
+                        <input type="checkbox" id="ruleScrollToTop">
+                        <label for="ruleScrollToTop">Scroll to Top on Switch</label>
+                    </div>
                 </div>
             </div>
-            </div>
-            </div>
-            <div class="summary-row">
-                <div id="effectiveRule"></div>
-                <button id="customize" class="link-button" title="Give this site or page its own Show For, Refresh or Auto Scroll.">Customize</button>
-            </div>
+            <div id="effectiveRule" class="rules-summary"></div>
         </div>
         <div id="pageRuleUnavailable" class="note" hidden>Page rules are not available for this tab.</div>
     </fieldset>
     <div class="rules-row">
-        <span>Saved Rules: <span id="ruleCount">0</span></span>
-        <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
+        <button id="manageRules" class="count-pill" title="Open every saved rule in a full tab."><span id="ruleCount">0</span> Saved Rules</button>
+        <button id="moreSettings" class="count-pill" title="Defaults, auto start, full screen, theme and badge, in a full tab.">More Settings</button>
     </div>
     <div id="accessNote" hidden><span>Auto Scroll and On hover need site access.</span><button id="allowAccess" class="link-button" title="Let Auto Scroll and Pause On Hover run on web pages.">Allow</button></div>
     <div id="status"><span id="statusText"></span><button id="undo" class="link-button" hidden>Undo</button></div>

@@ -9,7 +9,7 @@
         pageRules: {
             'page:https://github.com/bryceforsm/skillys-auto-tab-switcher': { display: { seconds: 60 }, refresh: { mode: 'background', minutes: 5 } },
             'host:grafana.example.com': { refresh: { mode: 'switch', minutes: 5 } },
-            'host:status.example.com': { display: { seconds: 15 }, scroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 } },
+            'host:status.example.com': { display: { seconds: 15 }, refresh: { mode: 'background', minutes: 2 }, scroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 } },
             'host:homeassistant.local:8123': { display: { seconds: 45 }, refresh: { mode: 'never', minutes: 5 } },
             'page:https://en.wikipedia.org/wiki/Main_Page': { scroll: { autoScroll: true, scrollToTop: true, scrollDelay: 3, scrollSpeed: 35 } },
             'host:example.com': { display: { seconds: 120 } },
@@ -36,9 +36,10 @@
             onChanged: { addListener() {} }
         },
         windows: { getCurrent: async () => ({ id: 1 }) },
+        permissions: { contains: async () => true, request: async () => true, onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
         commands: { getAll: async () => [{ name: 'toggle-timer', shortcut: 'Alt+Shift+S' }] },
-        tabs: { query: async () => [{ id: 1, url: 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox, seconds: 12, paused: false, loading: false }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
+        tabs: { query: async () => [{ id: 1, url: params.get('tab') || 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
+        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox, seconds: 12, paused: params.get('paused') === '1', loading: false }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -57,6 +58,8 @@
             document.head.append(style);
         }
         if (params.get('edit')) setTimeout(() => openEditor(params.get('edit')), 300);
+        // The popup editor starts collapsed, so a chip click opens it after the page has initialised.
+        if (params.get('open')) setTimeout(() => document.getElementById(params.get('open') + 'Chip')?.click(), 500);
         // A magenta backdrop lets the script find where the popup ends in a tall screenshot.
         if (params.get('measure')) {
             const style = document.createElement('style');
