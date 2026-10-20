@@ -55,7 +55,7 @@ This extension automatically switches between your open tabs at an interval you 
     - **Keyboard shortcut:** press **Alt+Shift+S** (**Control+Shift+S** on Mac) to start or stop the timer in the current window. To change it, open `chrome://extensions/shortcuts` (`edge://extensions/shortcuts` in Edge).
 
 2.  **More Settings and Rules:**
-    - Click **More Settings and Rules** in the popup, or right-click the extension icon and choose **Options**. Clicking it in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
+    - Click **Saved Rules** or **More Settings** in the popup, or right-click the extension icon and choose **Options**. Clicking either in the popup stops the timer in that window so the settings tab stays on screen. The top of the page shows whether the timer is running in its window. Changes on this page save as soon as you make them.
     - **Timer:**
         - **Show Each Tab For** and **Pause Timer** are the same settings as in the popup.
         - **Resume After** (shown next to Pause Timer when it is On activity or On hover) is how many seconds before the timer resumes. With **On activity** it is the time without mouse or keyboard use (at least 15, a Chrome limit). With **On hover** it is the time after the pointer leaves the page (at least 1).

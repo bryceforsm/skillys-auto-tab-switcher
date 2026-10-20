@@ -480,12 +480,11 @@
             background-color: #f1f3f4;
             font-size: 12px;
             color: #3c4043;
+            width: auto;
+            font-weight: 400;
         }
-        .rules-row .link-button {
-            padding: 0;
-            color: #202124;
-        }
-        .rules-row .link-button:hover {
+        .count-pill:hover {
+            background-color: #e4e7ea;
             color: #1a73e8;
         }
         :root[data-theme="dark"] {
@@ -592,10 +591,8 @@
                 border-color: #2b303b;
                 color: #c9ccd1;
             }
-            .rules-row .link-button {
-                color: #e6e8ec;
-            }
-            .rules-row .link-button:hover {
+            .count-pill:hover {
+                background-color: #1f242c;
                 color: #8ab4f8;
             }
             .rule-chip {
@@ -735,8 +732,8 @@
         <div id="pageRuleUnavailable" class="note" hidden>Page rules are not available for this tab.</div>
     </fieldset>
     <div class="rules-row">
-        <span class="count-pill"><span id="ruleCount">0</span> Saved Rules</span>
-        <button id="manageRules" class="link-button" title="Defaults, auto start, full screen, theme, badge and every saved rule, in a full tab.">More Settings and Rules</button>
+        <button id="manageRules" class="count-pill" title="Open every saved rule in a full tab."><span id="ruleCount">0</span> Saved Rules</button>
+        <button id="moreSettings" class="count-pill" title="Defaults, auto start, full screen, theme and badge, in a full tab.">More Settings</button>
     </div>
     <div id="accessNote" hidden><span>Auto Scroll and On hover need site access.</span><button id="allowAccess" class="link-button" title="Let Auto Scroll and Pause On Hover run on web pages.">Allow</button></div>
     <div id="status"><span id="statusText"></span><button id="undo" class="link-button" hidden>Undo</button></div>

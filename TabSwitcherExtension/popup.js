@@ -45,7 +45,8 @@ async function init() {
     for (const scope of ['page', 'site']) {
         $(scope + 'Chip').addEventListener('click', (e) => {
             if (e.target.closest('button')) return;
-            customizing = true;
+            // Clicking the open chip again collapses the editor.
+            customizing = !(customizing && $('ruleScope').value === scope);
             $('ruleScope').value = scope;
             loadEditorRule();
         });
@@ -56,6 +57,7 @@ async function init() {
     $('toggleTimer').addEventListener('click', toggleTimer);
     $('shortcutHint').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
     $('manageRules').addEventListener('click', manageRules);
+    $('moreSettings').addEventListener('click', manageRules);
     $('allowAccess').addEventListener('click', () => requestSiteAccess());
     chrome.permissions.onAdded.addListener(showAccessNote);
     chrome.permissions.onRemoved.addListener(showAccessNote);
