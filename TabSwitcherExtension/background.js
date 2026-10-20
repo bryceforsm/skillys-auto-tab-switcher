@@ -1,4 +1,5 @@
-importScripts('shared.js');
+// Firefox loads shared.js through the manifest's background scripts instead.
+if (typeof importScripts === 'function') importScripts('shared.js');
 
 const PAUSE_COLOR = '#d93025';
 const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than this

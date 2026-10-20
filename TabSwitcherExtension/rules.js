@@ -58,7 +58,7 @@ async function init() {
     $('editorForm').addEventListener('submit', saveEdit);
     $('cancelEdit').addEventListener('click', () => $('editor').close());
     $('resetAll').addEventListener('click', resetAll);
-    $('shortcutBtn').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+    $('shortcutBtn').addEventListener('click', openShortcutSettings);
     $('allowAccess').addEventListener('click', async () => {
         await requestSiteAccess();
         showSiteAccessNotice();

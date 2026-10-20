@@ -55,7 +55,7 @@ async function init() {
     $('siteReset').addEventListener('click', () => resetRule('site'));
     $('undo').addEventListener('click', undoReset);
     $('toggleTimer').addEventListener('click', toggleTimer);
-    $('shortcutHint').addEventListener('click', () => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' }));
+    $('shortcutHint').addEventListener('click', openShortcutSettings);
     $('manageRules').addEventListener('click', manageRules);
     $('moreSettings').addEventListener('click', manageRules);
     $('allowAccess').addEventListener('click', () => requestSiteAccess());
@@ -348,7 +348,8 @@ function renderRuleState() {
 async function manageRules() {
     // Otherwise the rotation would switch away from the settings tab.
     if (timerRunning) await chrome.runtime.sendMessage({ command: 'stopTimer', windowId: currentWindowId });
-    chrome.runtime.openOptionsPage();
+    await chrome.runtime.openOptionsPage();
+    window.close();
 }
 
 // ---------- Form state ----------

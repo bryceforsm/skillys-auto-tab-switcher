@@ -26,6 +26,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 - Chrome caps popups at 800x600. The popup is about 470px tall with everything expanded, so any new row there needs space found elsewhere.
 - The dark theme uses nested `:root[data-theme="dark"]` rules that outrank `#id.class` selectors. Every new state class (for example `.rule-chip.active`) needs a dark variant too.
 - No network requests, remote code, `eval` or `new Function`. The store privacy answers in `Misc/STORE_LISTING.md` depend on this.
+- The code must run in both Chrome and Firefox (Firefox 140+, background event page). Use only WebExtension APIs both support, guard anything browser-specific (see `openShortcutSettings()` in `shared.js`), and keep `manifest.json` Chrome-valid. Firefox-only manifest changes belong in `Build-Package.ps1`.
 - `<all_urls>` is an optional host permission, requested when Auto Scroll or Pause On Hover is first turned on. The content script is registered at runtime, so don't add `content_scripts` or `host_permissions` back. See `Misc/designnotes.md`.
 
 ## Build and Test
@@ -33,7 +34,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 - Node.js isn't installed, so JS can't be run from the terminal.
 - To check layout, open `popup.html` or `rules.html` via `file://` in the integrated browser. `chrome.*` is undefined there, so init throws and every section stays expanded (worst case for height).
 - For real testing, load the folder unpacked at `chrome://extensions` and reload it after changes.
-- Package with `.\Build-Package.ps1`. The zip name comes from today's date and the `version` in `manifest.json`, and `*.zip` is gitignored.
+- Package with `.\Build-Package.ps1`. The zip name comes from today's date and the `version` in `manifest.json`, and `*.zip` is gitignored. It also writes a `_firefox.zip` whose manifest swaps `background.service_worker` for background `scripts` and adds the gecko settings. Keep code free of Chrome-only calls (use `openShortcutSettings()` from `shared.js`, and guard `importScripts`).
 - After UI or label changes, regenerate the README and store images with the `store-screenshots` skill (`.github/skills/store-screenshots/`) and check them for cut-off text.
 
 ## Conventions
