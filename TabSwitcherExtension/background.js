@@ -274,10 +274,11 @@ function pickNext(tabs) {
     const currentIndex = tabs.findIndex((t) => t.active);
     const current = tabs[currentIndex];
     let next = tabs[(currentIndex + 1) % tabs.length];
-    if (settings.skipPinned) {
-        // Stays on the current tab when every other tab is pinned.
+    if (settings.pinnedTabs !== 'include') {
+        // Stays on the current tab when no other tab qualifies.
+        const wantPinned = settings.pinnedTabs === 'only';
         const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
-        next = others.find((t) => !t.pinned) || current || next;
+        next = others.find((t) => !!t.pinned === wantPinned) || current || next;
     }
     return { current, next };
 }

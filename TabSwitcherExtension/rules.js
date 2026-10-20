@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -116,7 +116,7 @@ function fillGeneral() {
     setField('pauseMode', 'value', settings.pauseMode);
     setField('resumeDelay', 'value', settings.resumeDelay);
     setField('autoStart', 'checked', settings.autoStart);
-    setField('skipPinned', 'checked', settings.skipPinned);
+    setField('pinnedTabs', 'value', settings.pinnedTabs);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
@@ -159,7 +159,7 @@ async function saveGeneral() {
         pauseMode: $('pauseMode').value,
         resumeDelay,
         autoStart: $('autoStart').checked,
-        skipPinned: $('skipPinned').checked,
+        pinnedTabs: $('pinnedTabs').value,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
