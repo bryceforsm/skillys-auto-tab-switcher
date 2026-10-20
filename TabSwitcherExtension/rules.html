@@ -12,7 +12,7 @@
             font-family: inherit;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
             background-color: #ffffff;
             background-image: linear-gradient(160deg, #ffffff, #eaeef3);
             background-attachment: fixed;
@@ -29,7 +29,7 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 12px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #d5d9de;
             padding-bottom: 12px;
             margin-bottom: 16px;
         }
@@ -38,7 +38,7 @@
             margin: 0;
             font-weight: 600;
             letter-spacing: 0.3px;
-            background: linear-gradient(90deg, #1f3b57, #24689c);
+            background: linear-gradient(90deg, #1f3b57, #2b5f8c);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -70,7 +70,7 @@
             margin: 0 0 16px 0;
             padding: 8px 12px;
             border: 1px solid #e37400;
-            border-radius: 4px;
+            border-radius: 8px;
             background-color: #fef7e0;
             font-size: 13px;
         }
@@ -116,8 +116,9 @@
         }
         fieldset {
             border: 1px solid #dadce0;
-            border-radius: 6px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            background-color: #f6f8fa;
+            padding: 10px 12px;
             margin: 0;
             min-width: 0;
         }
@@ -164,9 +165,9 @@
         input[type="search"] {
             flex: 1;
             max-width: 420px;
-            padding: 6px 8px;
+            padding: 6px 10px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 14px;
         }
         table {
@@ -204,7 +205,7 @@
         }
         button {
             padding: 4px 10px;
-            border-radius: 4px;
+            border-radius: 8px;
             border: 1px solid #bdc1c6;
             background-color: #f1f3f4;
             color: #3c4043;
@@ -260,7 +261,7 @@
             margin-top: 32px;
             padding: 12px;
             border: 1px solid #f28b82;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 13px;
         }
         #version {
@@ -298,9 +299,9 @@
         input[type="text"] {
             flex: 1;
             min-width: 0;
-            padding: 4px;
+            padding: 4px 6px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 14px;
         }
         .control-group {
@@ -316,10 +317,15 @@
         }
         select {
             width: 220px;
-            padding: 4px;
+            padding: 5px 26px 5px 9px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 8px;
             font-size: 14px;
+            appearance: none;
+            background-color: #ffffff;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23202124' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
         }
         #shortcutBtn {
             width: 220px;
@@ -347,7 +353,7 @@
             width: 60px;
             padding: 4px;
             border: 1px solid #bdc1c6;
-            border-radius: 4px;
+            border-radius: 8px;
             text-align: center;
             font-size: 14px;
         }
@@ -371,23 +377,29 @@
         :root[data-theme="dark"] {
             color-scheme: dark;
             body, dialog {
-                background-color: #202124;
-                color: #e8eaed;
+                color: #e6e8ec;
             }
             body {
-                background-image: linear-gradient(160deg, #202124, #1d2127);
+                background-color: #0f1115;
+                background-image: linear-gradient(160deg, #0f1115, #13161c);
+            }
+            dialog, fieldset {
+                background-color: #13161c;
             }
             h1 {
-                background-image: linear-gradient(90deg, #e8eaed, #8ab4f8);
+                background-image: linear-gradient(90deg, #e6e8ec, #bcd0f2);
             }
-            header, th, td, dialog, fieldset {
-                border-color: #3c4043;
+            header, dialog, fieldset {
+                border-color: #2b303b;
+            }
+            th, td {
+                border-color: #1f242c;
             }
             .muted, th, label {
                 color: #9aa0a6;
             }
             #timerState {
-                background-color: #292a2d;
+                background-color: #171a20;
                 color: #9aa0a6;
             }
             #timerState.running {
@@ -411,22 +423,25 @@
                 color: #fdd663;
             }
             input[type="search"], input[type="text"], input[type="number"], select {
-                background-color: #292a2d;
-                color: #e8eaed;
-                border-color: #5f6368;
+                background-color: #171a20;
+                color: #e6e8ec;
+                border-color: #2b303b;
+            }
+            select {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23e6e8ec' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
             }
             button {
-                background-color: #292a2d;
-                color: #e8eaed;
-                border-color: #5f6368;
+                background-color: #171a20;
+                color: #e6e8ec;
+                border-color: #2b303b;
             }
             button:hover {
-                background-color: #3c4043;
+                background-color: #232832;
             }
             button.primary {
                 background-color: #8ab4f8;
                 border-color: #8ab4f8;
-                color: #202124;
+                color: #0f1115;
             }
             button.danger {
                 color: #f28b82;

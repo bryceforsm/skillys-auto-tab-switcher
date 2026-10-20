@@ -77,18 +77,20 @@ try {
 
     # The expanded popup (page rule shown) is 700px wide plus padding.
     $ruleWidth = 730
-    $ruleHeight = Measure-PopupHeight 'popup.html?theme=light&measure=1' $ruleWidth
+    $ruleHeight = Measure-PopupHeight 'popup.html?theme=light&open=page&measure=1' $ruleWidth
+    $darkTab = [uri]::EscapeDataString('https://status.example.com/overview')
+    $darkState = "tab=$darkTab&open=site&paused=1"
     $readmePopups = @(
-        Save-Shot 'popup.html?theme=light' 'readme-popup-light.png' $ruleWidth $ruleHeight
-        Save-Shot 'popup.html?theme=dark' 'readme-popup-dark.png' $ruleWidth $ruleHeight
+        Save-Shot 'popup.html?theme=light&open=page' 'readme-popup-light.png' $ruleWidth $ruleHeight
+        Save-Shot "popup.html?theme=dark&$darkState" 'readme-popup-dark.png' $ruleWidth $ruleHeight
     )
 
     $rawLight = Save-Shot 'popup.html?theme=light&defaults=1' 'raw-light.png' $popupWidth $popupHeight
     $rawDark = Save-Shot 'popup.html?theme=dark&defaults=1' 'raw-dark.png' $popupWidth $popupHeight
     $editKey = [uri]::EscapeDataString('page:https://github.com/bryceforsm/skillys-auto-tab-switcher')
     $store = @(
-        Save-Shot 'popup.html?theme=light&frame=1' 'popup-light.png'
-        Save-Shot 'popup.html?theme=dark&frame=1' 'popup-dark.png'
+        Save-Shot 'popup.html?theme=light&frame=1&open=page' 'popup-light.png'
+        Save-Shot "popup.html?theme=dark&frame=1&$darkState" 'popup-dark.png'
         Save-Shot 'popup.html?theme=light&frame=1&defaults=1' 'popup-defaults.png'
         Save-Shot 'rules.html?theme=light' 'rules-light.png'
         Save-Shot "rules.html?theme=dark&edit=$editKey" 'rules-edit-dark.png'

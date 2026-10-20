@@ -29,7 +29,7 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
 ## Changing what is shown
 
 - Settings, rules, the current tab URL and the theme come from [assets/mock.js](./assets/mock.js). Edit `store` there.
-- Query parameters understood by the mock: `theme=light|dark`, `frame=1` (centre the popup on a 1280x800 backdrop), `defaults=1` (out-of-box `DEFAULTS` from `shared.js`, no rules, timer stopped), `edit=<rule key>` (open the Edit Rule dialog), `measure=1` (magenta backdrop used to measure popup height).
+- Query parameters understood by the mock: `theme=light|dark`, `frame=1` (centre the popup on a 1280x800 backdrop), `defaults=1` (out-of-box `DEFAULTS` from `shared.js`, no rules, timer stopped), `edit=<rule key>` (open the Edit Rule dialog), `measure=1` (magenta backdrop used to measure popup height), `open=page|site` (click that rule pill so the popup's collapsed editor is open), `tab=<url>` (the active tab's address), `paused=1` (timer shown as paused).
 - To add a shot, add a `Save-Shot` line in the script.
 
 ## Things that don't work (already tried)
