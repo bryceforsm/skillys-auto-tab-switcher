@@ -15,7 +15,7 @@ This extension automatically switches between your open tabs at an interval you 
 - **Auto Tab Switching:** Cycles through all open tabs in the window.
 - **Per-Page Rules:** Override how long the page is shown, refresh and auto scroll for a whole site or a single page. Refresh can happen on switch, before switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
 - **Window Isolation:** Works only on the window where it was activated.
-- **Auto Scroll:** Automatically scrolls down the page at a configurable speed. Auto Scroll and On hover ask for site access the first time you turn them on. Everything else works without it.
+- **Auto Scroll:** Automatically scrolls down the page at a configurable speed. Auto Scroll and On hover need site access, which is only requested when you click **Allow** on the notice that appears after you turn them on. Everything else works without it.
 - **Pause Modes:** Configurable options to pause the timer on user activity or when hovering over the page.
 - **Auto-Start:** Automatically starts the timer when the browser opens or a new window is created.
 - **Customizable Timing:** Set how many seconds each tab is shown, with longer or shorter times for individual sites or pages.
