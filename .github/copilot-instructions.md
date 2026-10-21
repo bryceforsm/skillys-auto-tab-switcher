@@ -27,7 +27,7 @@ Settings live in `chrome.storage.local`, and every reader goes through `normaliz
 - The dark theme uses nested `:root[data-theme="dark"]` rules that outrank `#id.class` selectors. Every new state class (for example `.rule-chip.active`) needs a dark variant too.
 - No network requests, remote code, `eval` or `new Function`. The store privacy answers in `Misc/STORE_LISTING.md` depend on this.
 - The code must run in both Chrome and Firefox (Firefox 140+, background event page). Use only WebExtension APIs both support, guard anything browser-specific (see `openShortcutSettings()` in `shared.js`), and keep `manifest.json` Chrome-valid. Firefox-only manifest changes belong in `Build-Package.ps1`.
-- `<all_urls>` is an optional host permission, requested when Auto Scroll or Pause On Hover is first turned on. The content script is registered at runtime, so don't add `content_scripts` or `host_permissions` back. See `Misc/designnotes.md`.
+- `<all_urls>` is an optional host permission, requested only when the user clicks **Allow** on the notice shown in the popup or rules page after Auto Scroll or Pause On Hover is turned on (never automatically). The content script is registered at runtime, so don't add `content_scripts` or `host_permissions` back. See `Misc/designnotes.md`.
 
 ## Build and Test
 

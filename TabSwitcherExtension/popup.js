@@ -165,11 +165,9 @@ function currentInterval() {
 }
 
 function saveGeneral(committed) {
-    const neededBefore = needsSiteAccess(defaults);
     defaults.switchInterval = currentInterval();
     defaults.pauseMode = $('pauseMode').value;
     if (committed) $('interval').value = defaults.switchInterval;
-    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ switchInterval: defaults.switchInterval, pauseMode: defaults.pauseMode });
     showAccessNote();
     updateEffectiveRule();
@@ -230,7 +228,6 @@ function loadEditorRule() {
 }
 
 function onRuleEdit(committed) {
-    const neededBefore = needsSiteAccess(defaults);
     const key = editorKey();
     const rule = {};
     const mode = $('ruleMode').value;
@@ -256,7 +253,6 @@ function onRuleEdit(committed) {
     } else {
         delete rules[key];
     }
-    if (!neededBefore && needsSiteAccess(defaults)) requestSiteAccess();
     chrome.storage.local.set({ pageRules: rules });
     showStatus('', false);
     // Show the values as they were clamped and saved.
@@ -335,11 +331,10 @@ function renderRuleState() {
     updatePageLabel();
     for (const scope of ['page', 'site']) {
         const has = !!(pageKeys[scope] && rules[pageKeys[scope]]);
-        const name = scope === 'page' ? 'Page' : 'Site';
         $(scope + 'Chip').hidden = !pageKeys[scope];
         $(scope + 'Chip').classList.toggle('active', has);
         $(scope + 'Chip').classList.toggle('selected', customizing && $('ruleScope').value === scope);
-        $(scope + 'ChipText').textContent = has ? `${name} rule` : `No ${scope} rule`;
+        $(scope + 'ChipText').textContent = scope === 'page' ? 'Page rule' : 'Site rule';
         $(scope + 'Reset').hidden = !has;
     }
     updateEffectiveRule();

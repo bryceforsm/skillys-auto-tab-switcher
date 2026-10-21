@@ -9,6 +9,7 @@ const REFRESH_MODES = {
 };
 
 const PAUSE_MODES = ['disable', 'activity', 'hover'];
+const PINNED_MODES = ['include', 'skip', 'only'];
 
 const DEFAULTS = {
     switchInterval: 30,
@@ -21,7 +22,7 @@ const DEFAULTS = {
     pageRules: {},
     autoStart: false,
     fullscreenOnStart: false,
-    skipPinned: false,
+    pinnedTabs: 'include',
     badgeColor: '#32cd32',
     badgeVisible: true,
     theme: 'system'
@@ -30,7 +31,7 @@ const DEFAULTS = {
 // Keys written by earlier versions, migrated by normalizeSettings.
 const LEGACY_KEYS = [
     'pauseOnActivity', 'pauseOnHover', 'autoRefresh', 'activityPaused', 'windowStates',
-    'refreshRules', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'
+    'refreshRules', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed', 'skipPinned'
 ];
 
 function clampInt(value, min, max, fallback) {
@@ -100,7 +101,7 @@ function normalizeSettings(raw) {
         pageRules,
         autoStart: raw.autoStart === true,
         fullscreenOnStart: raw.fullscreenOnStart === true,
-        skipPinned: raw.skipPinned === true,
+        pinnedTabs: PINNED_MODES.includes(raw.pinnedTabs) ? raw.pinnedTabs : raw.skipPinned === true ? 'skip' : 'include',
         badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
         badgeVisible: raw.badgeVisible !== false,
         theme: ['system', 'light', 'dark'].includes(raw.theme) ? raw.theme : 'system'

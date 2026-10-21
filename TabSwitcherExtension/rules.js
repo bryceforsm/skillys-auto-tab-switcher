@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'skipPinned', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
 
 let settings = normalizeSettings({});
@@ -116,7 +116,7 @@ function fillGeneral() {
     setField('pauseMode', 'value', settings.pauseMode);
     setField('resumeDelay', 'value', settings.resumeDelay);
     setField('autoStart', 'checked', settings.autoStart);
-    setField('skipPinned', 'checked', settings.skipPinned);
+    setField('pinnedTabs', 'value', settings.pinnedTabs);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
@@ -154,18 +154,12 @@ async function saveGeneral() {
     // The box may still have focus, so show the clamped value here instead of waiting for a refill.
     const resumeDelay = clampInt($('resumeDelay').value, resumeMin(), 3600, 15);
     $('resumeDelay').value = resumeDelay;
-    const neededNow = needsSiteAccess({
-        pauseMode: $('pauseMode').value,
-        defaultScroll: { autoScroll: $('autoScroll').value === 'on' },
-        pageRules: settings.pageRules
-    });
-    if (neededNow && !needsSiteAccess(settings)) requestSiteAccess();
     await chrome.storage.local.set({
         switchInterval: clampInt($('interval').value, 5, 86400, 30),
         pauseMode: $('pauseMode').value,
         resumeDelay,
         autoStart: $('autoStart').checked,
-        skipPinned: $('skipPinned').checked,
+        pinnedTabs: $('pinnedTabs').value,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
@@ -442,7 +436,6 @@ async function saveEdit(event) {
     if (scheme) rule.scheme = scheme;
     if (key !== oldKey && settings.pageRules[key]
         && !confirm(`A rule for ${displayTarget(key, settings.pageRules[key])} already exists. Replace it?`)) return;
-    if (rule.scroll && rule.scroll.autoScroll && !needsSiteAccess(settings)) requestSiteAccess();
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
         if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;
