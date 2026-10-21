@@ -28,6 +28,10 @@ This extension automatically switches between your open tabs at an interval you 
 - **Visual Countdown:** Shows a countdown badge on the extension icon.
 - **Customizable Badge:** Change the color of the badge or hide it completely.
 
+## Privacy
+
+No accounts, no tracking and no data collection. Settings and rules stay in your browser and are never sent anywhere. Chrome describes the `tabs` permission as "Read your browsing history", but the extension has no access to your history. It only reads the addresses of your open tabs to match your page and site rules, and it never stores or sends them.
+
 ## Screenshots
 
 <table align="center">

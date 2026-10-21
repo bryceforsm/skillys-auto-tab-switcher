@@ -43,6 +43,8 @@ GREAT FOR
 PRIVACY
 No accounts, no tracking and no data collection. Settings and rules are stored locally in your browser and never leave your computer.
 
+Chrome describes the tabs permission as "Read your browsing history". The extension has no access to your history. It only reads the addresses of your open tabs to match your page and site rules, and it never stores or sends them.
+
 HOW TO USE
 1. Open the tabs you want to rotate in one window.
 2. Click the extension icon, set how long each tab is shown and any refresh or scroll options.
@@ -181,6 +183,8 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 **Privacy**
 
 No accounts, no tracking and no data collection. Settings and rules are stored locally in your browser and never leave your computer. Site access is optional and only requested when you turn on Auto Scroll or Pause Timer: On hover.
+
+The browser describes the tabs permission as reading your browsing history. The extension has no access to your history. It only reads the addresses of your open tabs to match your page and site rules, and it never stores or sends them.
 
 **How to use**
 
