@@ -331,11 +331,10 @@ function renderRuleState() {
     updatePageLabel();
     for (const scope of ['page', 'site']) {
         const has = !!(pageKeys[scope] && rules[pageKeys[scope]]);
-        const name = scope === 'page' ? 'Page' : 'Site';
         $(scope + 'Chip').hidden = !pageKeys[scope];
         $(scope + 'Chip').classList.toggle('active', has);
         $(scope + 'Chip').classList.toggle('selected', customizing && $('ruleScope').value === scope);
-        $(scope + 'ChipText').textContent = has ? `${name} rule` : `No ${scope} rule`;
+        $(scope + 'ChipText').textContent = scope === 'page' ? 'Page rule' : 'Site rule';
         $(scope + 'Reset').hidden = !has;
     }
     updateEffectiveRule();

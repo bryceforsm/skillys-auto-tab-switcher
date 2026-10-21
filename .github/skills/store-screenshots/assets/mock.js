@@ -60,6 +60,14 @@
         if (params.get('edit')) setTimeout(() => openEditor(params.get('edit')), 300);
         // The popup editor starts collapsed, so a chip click opens it after the page has initialised.
         if (params.get('open')) setTimeout(() => document.getElementById(params.get('open') + 'Chip')?.click(), 500);
+        // The store downsizes to about 800x500, so enlarge the popup to fill most of the canvas.
+        if (params.get('frame')) {
+            setTimeout(() => {
+                const box = document.body.getBoundingClientRect();
+                document.body.style.zoom = Math.min(innerWidth * 0.8 / box.width, innerHeight * 0.8 / box.height);
+            }, 900);
+        }
+        if (params.get('zoom')) document.body.style.zoom = params.get('zoom');
         // A magenta backdrop lets the script find where the popup ends in a tall screenshot.
         if (params.get('measure')) {
             const style = document.createElement('style');

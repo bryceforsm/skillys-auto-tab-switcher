@@ -92,8 +92,8 @@ try {
         Save-Shot 'popup.html?theme=light&frame=1&open=page' 'popup-light.png'
         Save-Shot "popup.html?theme=dark&frame=1&$darkState" 'popup-dark.png'
         Save-Shot 'popup.html?theme=light&frame=1&defaults=1' 'popup-defaults.png'
-        Save-Shot 'rules.html?theme=light' 'rules-light.png'
-        Save-Shot "rules.html?theme=dark&edit=$editKey" 'rules-edit-dark.png'
+        Save-Shot 'rules.html?theme=light&zoom=1.3' 'rules-light.png'
+        Save-Shot "rules.html?theme=dark&zoom=1.3&edit=$editKey" 'rules-edit-dark.png'
     )
 
     $light = [Drawing.Image]::FromFile($rawLight)
