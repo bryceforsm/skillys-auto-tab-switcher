@@ -4,7 +4,7 @@ This extension automatically switches between your open tabs at an interval you 
 
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/cjlifgcbhoonngnkpdekggobjohkpinm"><img src="https://img.shields.io/badge/Chrome-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Get it on the Chrome Web Store"></a>
-  <a href="EDGE_STORE_URL"><img src="https://img.shields.io/badge/Edge-Install-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white" alt="Get it on Microsoft Edge Add-ons"></a>
+  <!-- <a href="EDGE_STORE_URL"><img src="https://img.shields.io/badge/Edge-Install-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white" alt="Get it on Microsoft Edge Add-ons"></a> -->
   <a href="https://addons.mozilla.org/en-US/firefox/addon/skilly-s-auto-tab-switcher"><img src="https://img.shields.io/badge/Firefox-Install-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Get it on Firefox Add-ons"></a>
 </p>
 
