@@ -68,6 +68,8 @@ $firefox | Add-Member -NotePropertyName browser_specific_settings -NotePropertyV
         strict_min_version = '140.0'
         data_collection_permissions = [ordered]@{ required = @('none') }
     }
+    # Android only gained data_collection_permissions support in 142.
+    gecko_android = [ordered]@{ strict_min_version = '142.0' }
 })
 New-ExtensionZip -ZipPath (Join-Path $OutputDirectory "TabSwitcherExtension_${date}_v${version}_firefox.zip") `
     -ManifestOverride ($firefox | ConvertTo-Json -Depth 10)
