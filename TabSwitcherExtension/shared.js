@@ -10,13 +10,14 @@ const REFRESH_MODES = {
 
 const PAUSE_MODES = ['disable', 'activity', 'hover'];
 const PINNED_MODES = ['include', 'skip', 'only'];
+const SCROLL_END_MODES = ['stop', 'next', 'yoyo', 'yoyoNext'];
 
 const DEFAULTS = {
     switchInterval: 30,
     pauseMode: 'disable',
     resumeDelay: 15,
     defaultRefresh: { mode: 'switch', minutes: 5 },
-    defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20 },
+    defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20, atEnd: 'stop', endDelay: 5 },
     // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, scheme? }. A missing section means use the default.
     // scheme is only kept on site rules, for opening the site from the rules page.
     pageRules: {},
@@ -51,7 +52,9 @@ function normalizeScroll(scroll, fallback) {
         autoScroll: scroll.autoScroll === true,
         scrollToTop: scroll.scrollToTop === true,
         scrollDelay: clampInt(scroll.scrollDelay, 0, 3600, DEFAULTS.defaultScroll.scrollDelay),
-        scrollSpeed: clampInt(scroll.scrollSpeed, 1, 100, DEFAULTS.defaultScroll.scrollSpeed)
+        scrollSpeed: clampInt(scroll.scrollSpeed, 1, 100, DEFAULTS.defaultScroll.scrollSpeed),
+        atEnd: SCROLL_END_MODES.includes(scroll.atEnd) ? scroll.atEnd : 'stop',
+        endDelay: clampInt(scroll.endDelay, 0, 3600, DEFAULTS.defaultScroll.endDelay)
     };
 }
 
@@ -194,11 +197,33 @@ function describeRefresh(rule) {
 function describeScroll(scroll) {
     if (!scroll.autoScroll) return 'Disable';
     const delay = scroll.scrollDelay ? `, ${scroll.scrollDelay}s delay` : '';
-    return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}`;
+    const end = scroll.atEnd === 'next' ? ', then next tab' : scroll.atEnd === 'yoyo' ? ', yoyo' : scroll.atEnd === 'yoyoNext' ? ', back up, then next tab' : '';
+    return `Speed ${scroll.scrollSpeed}${delay}${scroll.scrollToTop ? ', from top' : ''}${end}`;
 }
 
 // Page Up and Page Down step number boxes by 5 (the service worker has no document).
 if (typeof document !== 'undefined') {
+    // Sliders can be adjusted with the mouse wheel while hovered. Not passive, so the page doesn't scroll too.
+    document.addEventListener('wheel', (e) => {
+        const input = e.target;
+        if (!(input instanceof HTMLInputElement) || input.type !== 'range' || input.disabled || !e.deltaY) return;
+        e.preventDefault();
+        const step = Number(input.step) || 1;
+        const next = Math.min(Number(input.max), Math.max(Number(input.min), Number(input.value) + (e.deltaY < 0 ? step : -step)));
+        if (next === Number(input.value)) return;
+        input.value = next;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, { passive: false });
+    const nonNegative = (input) => input instanceof HTMLInputElement && input.type === 'number'
+        && input.min !== '' && Number(input.min) >= 0;
+    document.addEventListener('keydown', (e) => {
+        if (e.key === '-' && nonNegative(e.target)) e.preventDefault();
+    });
+    // Capture phase, so a pasted negative is fixed before any page handler saves it.
+    document.addEventListener('input', (e) => {
+        if (nonNegative(e.target) && Number(e.target.value) < 0) e.target.value = e.target.value.replace('-', '');
+    }, true);
     document.addEventListener('keydown', (e) => {
         const input = e.target;
         if (e.key !== 'PageUp' && e.key !== 'PageDown') return;

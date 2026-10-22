@@ -7,6 +7,10 @@
     let pauseOnHover = false;
     let speed = 20;
     let delay = 0;
+    let atEnd = 'stop'; // what to do at the bottom: stop, next (switch tab), yoyo (scroll back up and repeat) or yoyoNext (back up, then switch tab)
+    let endDelay = 0;
+    let phase = 'down'; // down, bottom (waiting), up, top (waiting) or done
+    let waitLeft = 0; // ms left in a bottom or top wait, only counted while scrolling is running
     let scrollingActive = false; // true once the start delay has passed
     let hovering = false;
     let held = false; // the background says the timer is held (hover delay or popup), so scrolling waits too
@@ -30,7 +34,7 @@
             return;
         }
         const pausedByHover = pauseOnHover && (hovering || held);
-        if (scrollingActive && !pausedByHover) startLoop(); else stopLoop();
+        if (scrollingActive && !pausedByHover && phase !== 'done') startLoop(); else stopLoop();
 
         // The background applies Resume After to the timer and tells us when to resume.
         if (pauseOnHover && hovering !== reportedHover) {
@@ -44,21 +48,54 @@
         return 1000 / Math.max(5, 105 - speed);
     }
 
+    function atBottom() {
+        return window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+    }
+
     function step(now) {
         if (!contextAlive()) {
             cleanup();
             return;
         }
         // Cap the gap so a frame after a long stall (hidden tab, busy page) doesn't jump.
-        carry += Math.min(now - lastFrame, 100) * pixelsPerSecond() / 1000;
+        const elapsed = Math.min(now - lastFrame, 100);
         lastFrame = now;
+
+        if (phase === 'bottom' || phase === 'top') {
+            waitLeft -= elapsed;
+            if (waitLeft <= 0) {
+                carry = 0;
+                if (phase === 'top' && atEnd !== 'yoyoNext') {
+                    phase = 'down';
+                } else if (phase === 'top' || atEnd === 'next') {
+                    // The background decides whether to switch, since the timer takes precedence.
+                    phase = 'done';
+                    chrome.runtime.sendMessage({ command: 'scrollFinished' }).catch(() => {});
+                    stopLoop();
+                    return;
+                } else {
+                    phase = 'up';
+                }
+            }
+            frameId = requestAnimationFrame(step);
+            return;
+        }
+
+        carry += elapsed * pixelsPerSecond() / 1000;
         // Whole device pixels keep every step the same size, so motion stays even on any display.
         const unit = 1 / (window.devicePixelRatio || 1);
         const move = Math.floor(carry / unit) * unit;
         if (move > 0) {
             // 'instant' overrides pages that set scroll-behavior: smooth, which would animate every step.
-            window.scrollBy({ top: move, behavior: 'instant' });
+            window.scrollBy({ top: phase === 'up' ? -move : move, behavior: 'instant' });
             carry -= move;
+        }
+        if (phase === 'down' && atEnd !== 'stop' && atBottom()) {
+            phase = 'bottom';
+            waitLeft = endDelay * 1000;
+        } else if (phase === 'up' && window.scrollY <= 0) {
+            phase = 'top';
+            waitLeft = delay * 1000;
         }
         frameId = requestAnimationFrame(step);
     }
@@ -77,6 +114,8 @@
 
     function reset() {
         scrollingActive = false;
+        phase = 'down';
+        waitLeft = 0;
         stopLoop();
         clearTimeout(startTimeoutId);
     }
@@ -102,6 +141,8 @@
             held = !!request.paused;
             speed = Number(request.speed) || 20;
             delay = Math.max(0, Number(request.delay) || 0);
+            atEnd = ['next', 'yoyo', 'yoyoNext'].includes(request.atEnd) ? request.atEnd : 'stop';
+            endDelay = Math.max(0, Number(request.endDelay) || 0);
             if (autoScroll && request.scrollToTop) window.scrollTo(0, 0);
             if (autoScroll && delay > 0) {
                 startTimeoutId = setTimeout(() => {

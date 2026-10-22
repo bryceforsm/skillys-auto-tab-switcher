@@ -557,6 +557,19 @@
                         <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
                         <input type="range" id="scrollSpeed" min="1" max="100" value="20">
                     </div>
+                    <div class="control-group" title="What happens when auto scroll reaches the bottom of the page. The timer still switches tabs when it runs out.">
+                        <label for="scrollEnd">At Bottom:</label>
+                        <select id="scrollEnd">
+                            <option value="stop">Stop</option>
+                            <option value="next">Go to next tab</option>
+                            <option value="yoyo">Scroll back up</option>
+                            <option value="yoyoNext">Back up, then next tab</option>
+                        </select>
+                    </div>
+                    <div id="endDelayWrap" class="control-group" title="Wait this many seconds at the bottom before moving on.">
+                        <label for="endDelay">Wait at Bottom (sec):</label>
+                        <input type="number" id="endDelay" min="0" max="3600" value="5">
+                    </div>
                 </div>
             </fieldset>
         </section>
@@ -654,6 +667,19 @@
                 <div class="control-group">
                     <label for="editSpeed">Scroll Speed: <span id="editSpeedDisplay">20</span></label>
                     <input type="range" id="editSpeed" min="1" max="100" value="20">
+                </div>
+                <div class="control-group">
+                    <label for="editEnd">At Bottom:</label>
+                    <select id="editEnd">
+                        <option value="stop">Stop</option>
+                        <option value="next">Go to next tab</option>
+                        <option value="yoyo">Scroll back up</option>
+                        <option value="yoyoNext">Back up, then next tab</option>
+                    </select>
+                </div>
+                <div id="editEndDelayWrap" class="control-group">
+                    <label for="editEndDelay">Wait at Bottom (sec):</label>
+                    <input type="number" id="editEndDelay" min="0" value="5">
                 </div>
             </div>
             <div class="dialog-buttons">

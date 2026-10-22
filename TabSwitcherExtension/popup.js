@@ -36,7 +36,7 @@ async function init() {
     watch('pauseMode', saveGeneral);
     setupSteppers();
     $('ruleScope').addEventListener('change', loadEditorRule);
-    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed']) {
+    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed', 'ruleScrollEnd', 'ruleScrollEndDelay']) {
         watch(id, onRuleEdit);
     }
     $('ruleScrollSpeed').addEventListener('input', () => {
@@ -222,6 +222,8 @@ function loadEditorRule() {
     $('ruleScrollDelay').value = scroll.scrollDelay;
     $('ruleScrollSpeed').value = scroll.scrollSpeed;
     $('ruleScrollSpeedDisplay').textContent = scroll.scrollSpeed;
+    $('ruleScrollEnd').value = scroll.atEnd;
+    $('ruleScrollEndDelay').value = scroll.endDelay;
 
     updateVisibility();
     renderRuleState();
@@ -243,7 +245,9 @@ function onRuleEdit(committed) {
             autoScroll: scrollMode === 'on',
             scrollToTop: $('ruleScrollToTop').checked,
             scrollDelay: clampInt($('ruleScrollDelay').value, 0, 3600, 5),
-            scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20)
+            scrollSpeed: clampInt($('ruleScrollSpeed').value, 1, 100, 20),
+            atEnd: $('ruleScrollEnd').value,
+            endDelay: clampInt($('ruleScrollEndDelay').value, 0, 3600, 5)
         };
     }
     if (rule.refresh || rule.scroll || rule.display) {
@@ -355,6 +359,8 @@ function updateVisibility() {
     $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value).replace(/ \(min\):$/, '');
     $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
     $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
+    $('ruleScrollToTopWrap').hidden = $('ruleScrollMode').value !== 'on';
+    $('ruleScrollEndDelayWrap').hidden = $('ruleScrollEnd').value === 'stop';
 }
 
 // ---------- Timer button ----------

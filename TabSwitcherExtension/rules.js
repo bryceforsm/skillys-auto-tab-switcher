@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
 const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
-    'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed'];
+    'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed', 'scrollEnd', 'endDelay'];
 
 let settings = normalizeSettings({});
 let windowId = null;
@@ -52,6 +52,7 @@ async function init() {
     $('editRefresh').addEventListener('change', updateEditorVisibility);
     $('editDisplay').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
+    $('editEnd').addEventListener('change', updateEditorVisibility);
     $('editSpeed').addEventListener('input', () => {
         $('editSpeedDisplay').textContent = $('editSpeed').value;
     });
@@ -127,6 +128,8 @@ function fillGeneral() {
     setField('scrollToTop', 'checked', settings.defaultScroll.scrollToTop);
     setField('scrollDelay', 'value', settings.defaultScroll.scrollDelay);
     setField('scrollSpeed', 'value', settings.defaultScroll.scrollSpeed);
+    setField('scrollEnd', 'value', settings.defaultScroll.atEnd);
+    setField('endDelay', 'value', settings.defaultScroll.endDelay);
     $('scrollSpeedDisplay').textContent = $('scrollSpeed').value;
     updateGeneralVisibility();
 }
@@ -147,6 +150,7 @@ function updateGeneralVisibility() {
     $('defaultMinutesWrap').hidden = !MINUTE_MODES.includes($('defaultMode').value);
     $('defaultMinutesLabel').textContent = refreshMinutesLabel($('defaultMode').value);
     $('defaultScrollOptions').hidden = $('autoScroll').value !== 'on';
+    $('endDelayWrap').hidden = $('scrollEnd').value === 'stop';
 }
 
 async function saveGeneral() {
@@ -169,7 +173,9 @@ async function saveGeneral() {
             autoScroll: $('autoScroll').value === 'on',
             scrollToTop: $('scrollToTop').checked,
             scrollDelay: clampInt($('scrollDelay').value, 0, 3600, 5),
-            scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20)
+            scrollSpeed: clampInt($('scrollSpeed').value, 1, 100, 20),
+            atEnd: $('scrollEnd').value,
+            endDelay: clampInt($('endDelay').value, 0, 3600, 5)
         }
     });
 }
@@ -337,6 +343,8 @@ function openEditor(key, duplicate = false) {
     $('editDelay').value = scroll.scrollDelay;
     $('editSpeed').value = scroll.scrollSpeed;
     $('editSpeedDisplay').textContent = scroll.scrollSpeed;
+    $('editEnd').value = scroll.atEnd;
+    $('editEndDelay').value = scroll.endDelay;
 
     updateEditorVisibility();
     $('editor').showModal();
@@ -397,6 +405,7 @@ function updateEditorVisibility() {
     $('editMinutesLabel').textContent = refreshMinutesLabel($('editRefresh').value);
     $('editDisplayWrap').hidden = $('editDisplay').value !== 'custom';
     $('editScrollOptions').hidden = $('editScroll').value !== 'on';
+    $('editEndDelayWrap').hidden = $('editEnd').value === 'stop';
 }
 
 // Read-modify-write against fresh storage so edits made elsewhere are not overwritten.
@@ -425,7 +434,9 @@ async function saveEdit(event) {
             autoScroll: scrollMode === 'on',
             scrollToTop: $('editToTop').checked,
             scrollDelay: clampInt($('editDelay').value, 0, 3600, 5),
-            scrollSpeed: clampInt($('editSpeed').value, 1, 100, 20)
+            scrollSpeed: clampInt($('editSpeed').value, 1, 100, 20),
+            atEnd: $('editEnd').value,
+            endDelay: clampInt($('editEndDelay').value, 0, 3600, 5)
         };
     }
     if (!oldKey && !rule.refresh && !rule.scroll && !rule.display) {

@@ -217,12 +217,7 @@ function tick() {
     const now = Date.now();
     for (const [windowId, w] of windows) {
         if (w.deadline !== null && now >= w.deadline) {
-            w.deadline = null;
-            w.remaining = 0;
-            switchTab(windowId, w).catch((err) => {
-                console.warn('Tab switch failed', err);
-                if (windows.get(windowId) === w) restartCountdown(w);
-            });
+            advance(windowId, w);
         } else {
             w.shownSeconds = Math.ceil(remainingMs(w) / 1000); // same value the badge shows until the next tick
             if (w.deadline !== null && !w.preloadChecked && w.deadline - now <= PRELOAD_LEAD_MS) {
@@ -232,6 +227,23 @@ function tick() {
             renderBadge(windowId);
         }
     }
+}
+
+// The timer ran out, or the page finished scrolling and its rule says to move on.
+function advance(windowId, w) {
+    w.deadline = null;
+    w.remaining = 0;
+    switchTab(windowId, w).catch((err) => {
+        console.warn('Tab switch failed', err);
+        if (windows.get(windowId) === w) restartCountdown(w);
+    });
+}
+
+// The timer still decides: a held or loading window ignores the early switch.
+function handleScrollFinished(tab) {
+    const w = windows.get(tab.windowId);
+    if (!w || w.activeTabId !== tab.id || isPaused(w)) return;
+    advance(tab.windowId, w);
 }
 
 async function switchTab(windowId, w) {
@@ -466,6 +478,8 @@ async function startScrolling(tabId, onArrival) {
         autoScroll: scroll.autoScroll,
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
+        atEnd: scroll.atEnd,
+        endDelay: scroll.endDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
         pauseOnHover,
         paused: scrollHeld(windows.get(tab.windowId))
@@ -526,6 +540,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
         else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
         else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
+        else if (msg.command === 'scrollFinished' && sender.tab) handleScrollFinished(sender.tab);
         const w = windows.get(msg.windowId);
         sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null });
     });

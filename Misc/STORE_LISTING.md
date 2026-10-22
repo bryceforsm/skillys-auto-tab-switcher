@@ -25,7 +25,7 @@ FEATURES
 - Window isolation: the timer only affects the window it was started in.
 - Smart refresh: reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
 - Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
-- Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
+- Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
 - Full screen on start: go full screen when the timer starts and restore the window when it stops.
@@ -164,7 +164,7 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 - **Window isolation:** the timer only affects the window it was started in.
 - **Smart refresh:** reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
 - **Per-site and per-page rules:** override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
-- **Auto scroll:** smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
+- **Auto scroll:** smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - **Pause when you need it:** pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - **Auto start:** begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
 - **Full screen on start:** go full screen when the timer starts and restore the window when it stops.
