@@ -6,6 +6,7 @@ const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than
 const LOAD_TIMEOUT_MS = 30000;
 const PRELOAD_LEAD_MS = 5000; // how long before a switch the "Before switch" refresh runs
 const PRELOAD_VALID_MS = 20000;
+const MIN_SHOW_MS = 5000; // same floor as Show Each Tab For, so short pages can't make tabs cycle nonstop
 const HEARTBEAT_ALARM = 'heartbeat';
 const STOP_SCROLLING = { command: 'stopScrolling' };
 
@@ -118,6 +119,7 @@ function resume(w) {
 
 function restartCountdown(w) {
     w.deadline = null;
+    w.shownAt = Date.now();
     w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
     w.shownSeconds = undefined;
     w.preloadChecked = false;
@@ -243,6 +245,12 @@ function advance(windowId, w) {
 function handleScrollFinished(tab) {
     const w = windows.get(tab.windowId);
     if (!w || w.activeTabId !== tab.id || isPaused(w)) return;
+    const earliest = (w.shownAt || 0) + MIN_SHOW_MS;
+    if (Date.now() < earliest) {
+        if (w.deadline > earliest) w.deadline = earliest;
+        persistRunning();
+        return;
+    }
     advance(tab.windowId, w);
 }
 
