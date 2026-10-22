@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'skipInternalPages', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'skipInternalPages', 'fullscreenOnStart', 'keepFullscreen', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed', 'scrollEnd', 'endDelay'];
 
 let settings = normalizeSettings({});
@@ -124,6 +124,7 @@ function fillGeneral() {
     setField('pinnedTabs', 'value', settings.pinnedTabs);
     setField('skipInternalPages', 'checked', settings.skipInternalPages);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
+    setField('keepFullscreen', 'checked', settings.keepFullscreen);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
     setField('theme', 'value', settings.theme);
@@ -171,6 +172,7 @@ async function saveGeneral() {
         pinnedTabs: $('pinnedTabs').value,
         skipInternalPages: $('skipInternalPages').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,
+        keepFullscreen: $('keepFullscreen').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
         theme: $('theme').value,

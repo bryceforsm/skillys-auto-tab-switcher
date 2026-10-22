@@ -72,6 +72,7 @@ No accounts, no tracking and no data collection. Settings and rules stay in your
         - **Resume After** (shown next to Pause Timer when it is On activity or On hover) is how many seconds before the timer resumes. With **On activity** it is the time without mouse or keyboard use (at least 15, a Chrome limit). With **On hover** it is the time after the pointer leaves the page (at least 1).
         - **Start/Stop Shortcut** shows the current keyboard shortcut. Click it to change it in the browser's shortcut settings.
         - **Full Screen on Timer Start** puts the window in full screen when its timer starts. Stopping the timer restores the previous window size. Press **F11** to leave full screen at any time (the extension icon is hidden while in full screen).
+        - **Keep Full Screen on Switch** puts the window back in full screen at the next tab switch if it left full screen while the timer runs, for example after an accidental **F11**. Stop the timer to stay out of full screen.
     - **General:**
         - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).
         - **Pinned Tabs** can cycle pinned tabs with the others, skip them, or rotate only through them.

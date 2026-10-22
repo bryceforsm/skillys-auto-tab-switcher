@@ -165,6 +165,18 @@ async function enterFullscreen(w) {
     }
 }
 
+// Minimized windows are left alone so a switch never pops one up.
+async function restoreFullscreen(w) {
+    const win = await chrome.windows.get(w.windowId).catch(() => null);
+    if (!win || (win.state !== 'normal' && win.state !== 'maximized')) return;
+    try {
+        await chrome.windows.update(w.windowId, { state: 'fullscreen' });
+        if (!w.restoreState) w.restoreState = win.state;
+    } catch (e) {
+        // Some window types or platforms refuse full screen.
+    }
+}
+
 // Only undoes full screen we applied, and only if the user has not already left it.
 async function exitFullscreen(w) {
     if (!w.restoreState) return;
@@ -255,6 +267,7 @@ function handleScrollFinished(tab) {
 }
 
 async function switchTab(windowId, w) {
+    if (settings.keepFullscreen) await restoreFullscreen(w);
     const tabs = await chrome.tabs.query({ windowId });
     if (windows.get(windowId) !== w) return;
     if (!tabs.length) {

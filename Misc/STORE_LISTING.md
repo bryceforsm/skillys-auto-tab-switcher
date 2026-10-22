@@ -28,7 +28,7 @@ FEATURES
 - Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
-- Full screen on start: go full screen when the timer starts and restore the window when it stops.
+- Full screen on start: go full screen when the timer starts and restore the window when it stops. Optionally keep it full screen on every tab switch.
 - Countdown badge: see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
 - Settings and rules page: set defaults, auto start, full screen, badge and theme in one place, then view, filter, add, edit, duplicate and remove every saved rule, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - Light, dark or system theme.
@@ -167,7 +167,7 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 - **Auto scroll:** smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - **Pause when you need it:** pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - **Auto start:** begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
-- **Full screen on start:** go full screen when the timer starts and restore the window when it stops.
+- **Full screen on start:** go full screen when the timer starts and restore the window when it stops. Optionally keep it full screen on every tab switch.
 - **Countdown badge:** see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
 - **Settings and rules page:** set defaults, auto start, full screen, badge and theme in one place, then view, filter, add, edit, duplicate and remove every saved rule, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - **Light, dark or system theme.**
