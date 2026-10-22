@@ -36,7 +36,7 @@ async function init() {
     watch('pauseMode', saveGeneral);
     setupSteppers();
     $('ruleScope').addEventListener('change', loadEditorRule);
-    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed', 'ruleScrollEnd', 'ruleScrollEndDelay']) {
+    for (const id of ['ruleMode', 'ruleMinutes', 'ruleDisplayMode', 'ruleDisplaySeconds', 'ruleScrollMode', 'ruleScrollToTop', 'ruleScrollDelay', 'ruleScrollSpeed', 'ruleScrollEnd', 'ruleScrollEndDelay', 'ruleSkip']) {
         watch(id, onRuleEdit);
     }
     $('ruleScrollSpeed').addEventListener('input', () => {
@@ -224,7 +224,9 @@ function loadEditorRule() {
     $('ruleScrollSpeedDisplay').textContent = scroll.scrollSpeed;
     $('ruleScrollEnd').value = scroll.atEnd;
     $('ruleScrollEndDelay').value = scroll.endDelay;
-
+    const isPage = $('ruleScope').value === 'page';
+    fillSkipOptions($('ruleSkip'), isPage, !!pageKeys.site && rules[pageKeys.site]?.skip === true,
+        rule.skip === undefined ? 'default' : rule.skip ? 'skip' : 'keep');
     updateVisibility();
     renderRuleState();
 }
@@ -250,7 +252,10 @@ function onRuleEdit(committed) {
             endDelay: clampInt($('ruleScrollEndDelay').value, 0, 3600, 5)
         };
     }
-    if (rule.refresh || rule.scroll || rule.display) {
+    const skipChoice = $('ruleSkip').value;
+    if (skipChoice === 'skip') rule.skip = true;
+    else if (skipChoice === 'keep' && key === pageKeys.page) rule.skip = false;
+    if (rule.refresh || rule.scroll || rule.display || rule.skip !== undefined) {
         // Remembered so the rules page can open the site the way it was visited.
         if (key.startsWith('host:')) rule.scheme = new URL(pageUrl).protocol.slice(0, -1);
         rules[key] = rule;
@@ -292,8 +297,8 @@ function showStatus(text, canUndo) {
 
 // Where a section comes from, matching the order ruleSectionFor() checks.
 function sectionSource(section) {
-    if (rules[pageKeys.page]?.[section]) return 'page rule';
-    if (pageKeys.site && rules[pageKeys.site]?.[section]) return 'site rule';
+    if (rules[pageKeys.page]?.[section] !== undefined) return 'page rule';
+    if (pageKeys.site && rules[pageKeys.site]?.[section] !== undefined) return 'site rule';
     return 'default';
 }
 
@@ -305,11 +310,13 @@ function updateEffectiveRule() {
         defaultRefresh: defaults.defaultRefresh,
         defaultScroll: defaults.defaultScroll
     };
-    const rows = [
-        ['Show For:', describeDisplay(displaySecondsFor(s, pageUrl)), sectionSource('display')],
-        ['Refresh:', describeRefresh(refreshRuleFor(s, pageUrl)), sectionSource('refresh')],
-        ['Auto Scroll:', describeScroll(scrollSettingsFor(s, pageUrl)), sectionSource('scroll')]
-    ];
+    const rows = isSkippedByRule(s, pageUrl)
+        ? [['Rotation:', 'Skipped, never switched to', sectionSource('skip')]]
+        : [
+            ['Show For:', describeDisplay(displaySecondsFor(s, pageUrl)), sectionSource('display')],
+            ['Refresh:', describeRefresh(refreshRuleFor(s, pageUrl)), sectionSource('refresh')],
+            ['Auto Scroll:', describeScroll(scrollSettingsFor(s, pageUrl)), sectionSource('scroll')]
+        ];
     $('effectiveRule').replaceChildren(...rows.map(([label, value, source]) => {
         const item = document.createElement('div');
         item.className = 'summary-item';
@@ -355,11 +362,13 @@ async function manageRules() {
 
 function updateVisibility() {
     $('ruleFields').hidden = !customizing;
+    const skipped = $('ruleSkip').value === 'skip';
+    for (const el of document.querySelectorAll('.rotation-opt')) el.hidden = skipped;
     $('ruleMinutesWrap').hidden = !MINUTE_MODES.includes($('ruleMode').value);
     $('ruleMinutesLabel').textContent = refreshMinutesLabel($('ruleMode').value).replace(/ \(min\):$/, '');
     $('ruleDisplayWrap').hidden = $('ruleDisplayMode').value !== 'custom';
-    $('ruleScrollOptions').hidden = $('ruleScrollMode').value !== 'on';
-    $('ruleScrollToTopWrap').hidden = $('ruleScrollMode').value !== 'on';
+    $('ruleScrollOptions').hidden = skipped || $('ruleScrollMode').value !== 'on';
+    $('ruleScrollToTopWrap').hidden = skipped || $('ruleScrollMode').value !== 'on';
     $('ruleScrollEndDelayWrap').hidden = $('ruleScrollEnd').value === 'stop';
 }
 

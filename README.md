@@ -61,6 +61,7 @@ No accounts, no tracking and no data collection. Settings and rules stay in your
         - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.
         - **Show For** keeps this site or page on screen for a custom number of seconds before switching, instead of **Show Each Tab For**.
         - **Refresh** and **Auto Scroll** each have a **Use default** option. Auto Scroll **Enable** shows its own scroll-to-top, delay, speed and **At Bottom** settings, and **Disable** turns scrolling off for that page.
+        - **Rotation** can skip the site or page, for example a site that keeps signing out. Skipped tabs hide the other rule settings and never auto scroll. On a page rule, **Include anyway** keeps that page in the rotation even when its whole site is skipped. If every tab is skipped, the timer stays on the current tab.
     - Click **Start Timer** to begin rotating through the tabs in this window. The button turns red while the timer runs. Click **Stop Timer** to stop. The keyboard shortcut is shown to the left of the button.
     - **Keyboard shortcut:** press **Alt+Shift+S** (**Control+Shift+S** on Mac) to start or stop the timer in the current window. To change it, open `chrome://extensions/shortcuts` (`edge://extensions/shortcuts` in Edge).
 
@@ -74,6 +75,7 @@ No accounts, no tracking and no data collection. Settings and rules stay in your
     - **General:**
         - **Auto Start on Browser Launch** starts the timer when the browser opens (also applies to new windows).
         - **Pinned Tabs** can cycle pinned tabs with the others, skip them, or rotate only through them.
+        - **Skip Browser Pages** leaves browser pages such as `chrome://extensions`, `edge://settings` and `about:config` out of the rotation.
         - **Countdown Badge** shows the seconds until the next switch on the extension icon, in the color you pick.
         - **Theme** chooses **System** (default, follows your OS light or dark setting), **Light**, or **Dark**.
     - **Defaults for Pages Without a Rule:**

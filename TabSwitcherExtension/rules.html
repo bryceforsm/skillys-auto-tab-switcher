@@ -511,6 +511,10 @@
                         <option value="only">Only pinned tabs</option>
                     </select>
                 </div>
+                <div class="control-group" title="Leave browser pages such as chrome://extensions, edge://settings and about:config out of the rotation.">
+                    <label for="skipInternalPages">Skip Browser Pages:</label>
+                    <input type="checkbox" id="skipInternalPages">
+                </div>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
                     <span class="inline">
@@ -593,6 +597,7 @@
                     <th><button type="button" class="sort" data-sort="display">Show For</button></th>
                     <th><button type="button" class="sort" data-sort="refresh">Refresh</button></th>
                     <th><button type="button" class="sort" data-sort="scroll">Auto Scroll</button></th>
+                    <th><button type="button" class="sort" data-sort="skip">Rotation</button></th>
                     <th></th>
                 </tr>
             </thead>
@@ -682,6 +687,15 @@
                     <input type="number" id="editEndDelay" min="0" value="5">
                 </div>
             </div>
+            <div class="control-group" title="Skip leaves it out of the rotation, for example a site that keeps signing out. On a page rule, Include anyway keeps the page in even when its site is skipped.">
+                <label for="editSkip">Rotation:</label>
+                <select id="editSkip">
+                    <option value="default">Use default</option>
+                    <option value="skip">Skip</option>
+                    <option value="keep">Always include (page only)</option>
+                </select>
+            </div>
+            <div id="editSkipNote" class="muted" hidden>Skipped tabs are never switched to, so this rule's Show For, Refresh and Auto Scroll settings are ignored.</div>
             <div class="dialog-buttons">
                 <button type="button" id="cancelEdit">Cancel</button>
                 <button type="submit" class="primary">Save Rule</button>

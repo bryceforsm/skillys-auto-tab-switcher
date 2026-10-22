@@ -18,12 +18,13 @@ const DEFAULTS = {
     resumeDelay: 15,
     defaultRefresh: { mode: 'switch', minutes: 5 },
     defaultScroll: { autoScroll: false, scrollToTop: false, scrollDelay: 5, scrollSpeed: 20, atEnd: 'stop', endDelay: 5 },
-    // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, scheme? }. A missing section means use the default.
+    // "host:<host>" or "page:<url>" -> { refresh?, scroll?, display?, skip?, scheme? }. A missing section means use the default.
     // scheme is only kept on site rules, for opening the site from the rules page.
     pageRules: {},
     autoStart: false,
     fullscreenOnStart: false,
     pinnedTabs: 'include',
+    skipInternalPages: false,
     badgeColor: '#32cd32',
     badgeVisible: true,
     theme: 'system'
@@ -84,12 +85,15 @@ function normalizeSettings(raw) {
         const refresh = normalizeRefresh(rule && rule.refresh, null);
         const scroll = normalizeScroll(rule && rule.scroll, null);
         const display = normalizeDisplay(rule && rule.display, null);
-        if (!refresh && !scroll && !display) continue;
+        // true leaves the tab out. false (page rules only) keeps it in even when its site is skipped.
+        const skip = !rule ? undefined : rule.skip === true ? true : rule.skip === false && rawKey.startsWith('page:') ? false : undefined;
+        if (!refresh && !scroll && !display && skip === undefined) continue;
         const key = normalizeKey(rawKey);
         const entry = {};
         if (refresh) entry.refresh = refresh;
         if (scroll) entry.scroll = scroll;
         if (display) entry.display = display;
+        if (skip !== undefined) entry.skip = skip;
         if (key.startsWith('host:') && ['http', 'https'].includes(rule.scheme)) entry.scheme = rule.scheme;
         // Older versions could save two forms of the same key. The one already in normal form wins per section.
         pageRules[key] = key === rawKey ? { ...pageRules[key], ...entry } : { ...entry, ...pageRules[key] };
@@ -105,6 +109,7 @@ function normalizeSettings(raw) {
         autoStart: raw.autoStart === true,
         fullscreenOnStart: raw.fullscreenOnStart === true,
         pinnedTabs: PINNED_MODES.includes(raw.pinnedTabs) ? raw.pinnedTabs : raw.skipPinned === true ? 'skip' : 'include',
+        skipInternalPages: raw.skipInternalPages === true,
         badgeColor: /^#[0-9a-f]{6}$/i.test(raw.badgeColor) ? raw.badgeColor : DEFAULTS.badgeColor,
         badgeVisible: raw.badgeVisible !== false,
         theme: ['system', 'light', 'dark'].includes(raw.theme) ? raw.theme : 'system'
@@ -165,16 +170,48 @@ function ruleSectionFor(settings, url, section) {
 }
 
 function refreshRuleFor(settings, url) {
-    return ruleSectionFor(settings, url, 'refresh') || settings.defaultRefresh;
+    return (!isSkippedByRule(settings, url) && ruleSectionFor(settings, url, 'refresh')) || settings.defaultRefresh;
 }
 
 function scrollSettingsFor(settings, url) {
-    return ruleSectionFor(settings, url, 'scroll') || settings.defaultScroll;
+    return (!isSkippedByRule(settings, url) && ruleSectionFor(settings, url, 'scroll')) || settings.defaultScroll;
 }
 
+// A skipped tab ignores its rule's other sections and uses the defaults.
 function displaySecondsFor(settings, url) {
-    const display = ruleSectionFor(settings, url, 'display');
+    const display = !isSkippedByRule(settings, url) && ruleSectionFor(settings, url, 'display');
     return display ? display.seconds : settings.switchInterval;
+}
+
+// The page rule's skip setting wins over the site rule's, including an explicit false.
+function isSkippedByRule(settings, url) {
+    const keys = ruleKeysForUrl(url);
+    if (!keys) return false;
+    for (const key of [keys.page, keys.site]) {
+        const rule = key && settings.pageRules[key];
+        if (rule && typeof rule.skip === 'boolean') return rule.skip;
+    }
+    return false;
+}
+
+// Rotation choices for a rule editor. "Include anyway" only appears when it would matter.
+function fillSkipOptions(select, isPage, siteSkipped, current) {
+    const choices = isPage
+        ? [['default', siteSkipped ? 'Same as site (skipped)' : 'Same as site'], ['skip', 'Skip']]
+        : [['default', 'Include'], ['skip', 'Skip']];
+    if (isPage && (siteSkipped || current === 'keep')) choices.push(['keep', 'Include anyway']);
+    select.replaceChildren(...choices.map(([value, text]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        return option;
+    }));
+    select.value = choices.some(([value]) => value === current) ? current : 'default';
+}
+
+// Browser pages such as chrome://extensions, edge://settings or about:config. Empty URLs are not treated as internal.
+function isInternalUrl(url) {
+    return !!url && !/^(https?|file|ftp):/i.test(url);
 }
 
 function describeDisplay(seconds) {

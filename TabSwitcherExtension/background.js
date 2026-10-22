@@ -293,14 +293,18 @@ async function switchTab(windowId, w) {
 function pickNext(tabs) {
     const currentIndex = tabs.findIndex((t) => t.active);
     const current = tabs[currentIndex];
-    let next = tabs[(currentIndex + 1) % tabs.length];
-    if (settings.pinnedTabs !== 'include') {
-        // Stays on the current tab when no other tab qualifies.
-        const wantPinned = settings.pinnedTabs === 'only';
-        const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
-        next = others.find((t) => !!t.pinned === wantPinned) || current || next;
-    }
+    const wantPinned = settings.pinnedTabs === 'only';
+    const eligible = (t) => (settings.pinnedTabs === 'include' || !!t.pinned === wantPinned) && !isSkippedTab(t);
+    // Starts after the current tab and ends on it, so the current tab is only picked when nothing else qualifies.
+    const ordered = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
+    // Stays on the current tab when no other tab qualifies.
+    const next = ordered.find(eligible) || current || ordered[0];
     return { current, next };
+}
+
+function isSkippedTab(tab) {
+    const url = tab.url || tab.pendingUrl;
+    return (settings.skipInternalPages && isInternalUrl(url)) || isSkippedByRule(settings, url);
 }
 
 // Reloads the next tab shortly before its turn, so it is already fresh when shown.
@@ -432,7 +436,7 @@ function updatePause(w) {
 }
 
 function scrollSignature(s) {
-    return JSON.stringify([s.pauseMode, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
+    return JSON.stringify([s.pauseMode, s.skipInternalPages, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll, rule.skip])]);
 }
 
 function applySettingsChange(prev) {
@@ -476,14 +480,15 @@ async function startScrolling(tabId, onArrival) {
     // The timer may have stopped while we waited, and scrolling only runs with the timer.
     if (!tab || !windows.has(tab.windowId)) return;
     const scroll = scrollSettingsFor(settings, tab.url);
+    const autoScroll = scroll.autoScroll && !isSkippedTab(tab);
     const pauseOnHover = settings.pauseMode === 'hover';
-    if (!scroll.autoScroll && !pauseOnHover) {
+    if (!autoScroll && !pauseOnHover) {
         sendToTab(tabId, STOP_SCROLLING);
         return;
     }
     const message = {
         command: 'startScrolling',
-        autoScroll: scroll.autoScroll,
+        autoScroll,
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
         atEnd: scroll.atEnd,

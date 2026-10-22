@@ -116,6 +116,11 @@
             width: auto;
             min-width: 0;
         }
+        /* Level with the Apply To select beside it. */
+        .skip-field {
+            align-self: end;
+            min-height: 30px;
+        }
         .end-wait {
             display: flex;
             align-items: center;
@@ -704,7 +709,15 @@
                         <option value="page">This page only</option>
                     </select>
                 </div>
-                <div class="form-field" title="How long this site or page stays on screen before switching to the next tab.">
+                <div class="form-field" title="Whether this tab is switched to. On a page, Include anyway keeps it in the rotation even when its site is skipped.">
+                    <label for="ruleSkip">Rotation</label>
+                    <select id="ruleSkip">
+                        <option value="default">Use default</option>
+                        <option value="skip">Skip tab</option>
+                        <option value="keep">Always include</option>
+                    </select>
+                </div>
+                <div class="form-field rotation-opt" title="How long this site or page stays on screen before switching to the next tab.">
                     <label for="ruleDisplayMode">Show For</label>
                     <div class="split-input-row">
                         <select id="ruleDisplayMode">
@@ -717,7 +730,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="form-field" title="How this site or page is refreshed. The number is the age limit or refresh period in minutes.">
+                <div class="form-field rotation-opt" title="How this site or page is refreshed. The number is the age limit or refresh period in minutes.">
                     <label for="ruleMode">Refresh Mode</label>
                     <div class="split-input-row">
                         <select id="ruleMode"></select>
@@ -728,7 +741,7 @@
                         </span>
                     </div>
                 </div>
-                <div class="form-field" title="Whether this site or page auto scrolls.">
+                <div class="form-field rotation-opt" title="Whether this site or page auto scrolls.">
                     <label for="ruleScrollMode">Auto Scroll</label>
                     <div class="split-input-row to-top-row">
                         <select id="ruleScrollMode">

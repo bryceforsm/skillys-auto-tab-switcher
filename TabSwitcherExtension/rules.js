@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const MINUTE_MODES = ['stale', 'background'];
-const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
+const GENERAL_FIELDS = ['interval', 'pauseMode', 'resumeDelay', 'autoStart', 'pinnedTabs', 'skipInternalPages', 'fullscreenOnStart', 'badgeVisible', 'badgeColor', 'theme',
     'defaultMode', 'defaultMinutes', 'autoScroll', 'scrollToTop', 'scrollDelay', 'scrollSpeed', 'scrollEnd', 'endDelay'];
 
 let settings = normalizeSettings({});
@@ -43,7 +43,10 @@ async function init() {
         });
     }
     $('editUrl').addEventListener('input', validateUrl);
-    $('editType').addEventListener('change', validateUrl);
+    $('editType').addEventListener('change', () => {
+        fillEditSkipOptions($('editSkip').value);
+        validateUrl();
+    });
     $('addRule').addEventListener('click', () => openEditor(null));
     $('exportRules').addEventListener('click', exportRules);
     $('importRules').addEventListener('click', () => $('importFile').click());
@@ -53,6 +56,7 @@ async function init() {
     $('editDisplay').addEventListener('change', updateEditorVisibility);
     $('editScroll').addEventListener('change', updateEditorVisibility);
     $('editEnd').addEventListener('change', updateEditorVisibility);
+    $('editSkip').addEventListener('change', updateEditorVisibility);
     $('editSpeed').addEventListener('input', () => {
         $('editSpeedDisplay').textContent = $('editSpeed').value;
     });
@@ -118,6 +122,7 @@ function fillGeneral() {
     setField('resumeDelay', 'value', settings.resumeDelay);
     setField('autoStart', 'checked', settings.autoStart);
     setField('pinnedTabs', 'value', settings.pinnedTabs);
+    setField('skipInternalPages', 'checked', settings.skipInternalPages);
     setField('fullscreenOnStart', 'checked', settings.fullscreenOnStart);
     setField('badgeVisible', 'checked', settings.badgeVisible);
     setField('badgeColor', 'value', settings.badgeColor);
@@ -164,6 +169,7 @@ async function saveGeneral() {
         resumeDelay,
         autoStart: $('autoStart').checked,
         pinnedTabs: $('pinnedTabs').value,
+        skipInternalPages: $('skipInternalPages').checked,
         fullscreenOnStart: $('fullscreenOnStart').checked,
         badgeVisible: $('badgeVisible').checked,
         badgeColor: $('badgeColor').value,
@@ -247,6 +253,7 @@ function sortValue(key, column) {
         case 'display': return rule.display ? rule.display.seconds : null;
         case 'refresh': return rule.refresh ? describeRefresh(rule.refresh) : null;
         case 'scroll': return rule.scroll ? describeScroll(rule.scroll) : null;
+        case 'skip': return rule.skip === undefined ? null : rule.skip ? 'Skipped' : 'Included';
         // The scheme is left out so a site and its pages sort together.
         default: return key.slice(5).replace(/^[a-z]+:\/\//i, '');
     }
@@ -311,6 +318,7 @@ function render() {
             cell(rule.display ? describeDisplay(rule.display.seconds) : 'Default', rule.display ? '' : 'muted'),
             cell(rule.refresh ? describeRefresh(rule.refresh) : 'Default', rule.refresh ? '' : 'muted'),
             cell(rule.scroll ? describeScroll(rule.scroll) : 'Default', rule.scroll ? '' : 'muted'),
+            cell(rule.skip === undefined ? 'Default' : rule.skip ? 'Skipped' : 'Included anyway', rule.skip === undefined ? 'muted' : ''),
             actions
         );
         return tr;
@@ -345,10 +353,16 @@ function openEditor(key, duplicate = false) {
     $('editSpeedDisplay').textContent = scroll.scrollSpeed;
     $('editEnd').value = scroll.atEnd;
     $('editEndDelay').value = scroll.endDelay;
-
+    fillEditSkipOptions(rule.skip === undefined ? 'default' : rule.skip ? 'skip' : 'keep');
     updateEditorVisibility();
     $('editor').showModal();
     if (duplicate) $('editUrl').select();
+}
+
+// Whether the site rule skips is unknown until the page URL is parsed, so the page choice is always offered here.
+function fillEditSkipOptions(current) {
+    fillSkipOptions($('editSkip'), $('editType').value === 'page', true, current);
+    if ($('editType').value === 'page') $('editSkip').options[0].textContent = 'Same as site';
 }
 
 // Returns { key } for a valid entry, or { error } explaining what is wrong.
@@ -406,6 +420,7 @@ function updateEditorVisibility() {
     $('editDisplayWrap').hidden = $('editDisplay').value !== 'custom';
     $('editScrollOptions').hidden = $('editScroll').value !== 'on';
     $('editEndDelayWrap').hidden = $('editEnd').value === 'stop';
+    $('editSkipNote').hidden = $('editSkip').value !== 'skip';
 }
 
 // Read-modify-write against fresh storage so edits made elsewhere are not overwritten.
@@ -439,8 +454,11 @@ async function saveEdit(event) {
             endDelay: clampInt($('editEndDelay').value, 0, 3600, 5)
         };
     }
-    if (!oldKey && !rule.refresh && !rule.scroll && !rule.display) {
-        $('editRefresh').setCustomValidity('Set Show For, Refresh or Auto Scroll, otherwise the rule does nothing.');
+    const skipChoice = $('editSkip').value;
+    if (skipChoice === 'skip') rule.skip = true;
+    else if (skipChoice === 'keep' && key.startsWith('page:')) rule.skip = false;
+    if (!oldKey && !rule.refresh && !rule.scroll && !rule.display && rule.skip === undefined) {
+        $('editRefresh').setCustomValidity('Set Show For, Refresh, Auto Scroll or Rotation, otherwise the rule does nothing.');
         $('editRefresh').reportValidity();
         return;
     }
@@ -449,7 +467,7 @@ async function saveEdit(event) {
         && !confirm(`A rule for ${displayTarget(key, settings.pageRules[key])} already exists. Replace it?`)) return;
     await updateRules((rules) => {
         if (oldKey) delete rules[oldKey];
-        if (rule.refresh || rule.scroll || rule.display) rules[key] = rule;
+        if (rule.refresh || rule.scroll || rule.display || rule.skip !== undefined) rules[key] = rule;
     });
     $('editor').close();
 }
