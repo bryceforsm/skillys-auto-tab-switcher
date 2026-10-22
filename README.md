@@ -4,11 +4,12 @@ This extension automatically switches between your open tabs at an interval you 
 
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/cjlifgcbhoonngnkpdekggobjohkpinm"><img src="https://img.shields.io/badge/Chrome-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Get it on the Chrome Web Store"></a>
-  <!-- <a href="EDGE_STORE_URL"><img src="https://img.shields.io/badge/Edge-Install-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white" alt="Get it on Microsoft Edge Add-ons"></a> -->
   <a href="https://addons.mozilla.org/en-US/firefox/addon/skilly-s-auto-tab-switcher"><img src="https://img.shields.io/badge/Firefox-Install-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Get it on Firefox Add-ons"></a>
 </p>
 
 **Compatibility:** Built primarily for Chrome, so it works with all Chromium-based browsers like **Google Chrome**, **Microsoft Edge**, **Brave**, **Vivaldi**, and **Opera**. **Firefox** (140 or newer) is supported too, but Chrome is the main target and gets the most testing.
+
+**Official listings:** The Chrome and Firefox links above are the only places I publish this extension. If you find it in any other store, it isn't officially supported by me.
 
 **Why another tab rotator?** There are plenty of auto tab rotators/revolvers on the Chrome Web Store and the other browser extension stores, but every one I tried was missing something I wanted. So I started from a fork of [ethanwa/ChromeAutoTabSwitcherExtension](https://github.com/ethanwa/ChromeAutoTabSwitcherExtension) and built it into something I could actually use day to day.
 
