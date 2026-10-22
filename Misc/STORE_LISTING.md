@@ -24,11 +24,11 @@ FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
 - Window isolation: the timer only affects the window it was started in.
 - Smart refresh: reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
-- Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
-- Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
+- Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page, or skip it in the rotation altogether. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
+- Auto scroll: smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - Pause when you need it: pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - Auto-start: begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
-- Full screen on start: go full screen when the timer starts and restore the window when it stops.
+- Full screen on start: go full screen when the timer starts and restore the window when it stops. Optionally keep it full screen on every tab switch.
 - Countdown badge: see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
 - Settings and rules page: set defaults, auto start, full screen, badge and theme in one place, then view, filter, add, edit, duplicate and remove every saved rule, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - Light, dark or system theme.
@@ -42,6 +42,8 @@ GREAT FOR
 
 PRIVACY
 No accounts, no tracking and no data collection. Settings and rules are stored locally in your browser and never leave your computer.
+
+Chrome describes the tabs permission as "Read your browsing history". The extension has no access to your history. It only reads the addresses of your open tabs to match your page and site rules, and it never stores or sends them.
 
 HOW TO USE
 1. Open the tabs you want to rotate in one window.
@@ -161,11 +163,11 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 - **Automatic tab switching:** rotate through every tab in the window at an interval you choose (5 seconds or more).
 - **Window isolation:** the timer only affects the window it was started in.
 - **Smart refresh:** reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
-- **Per-site and per-page rules:** override how long a page is shown, its refresh and its scrolling for a whole site or a single page. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
-- **Auto scroll:** smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch.
+- **Per-site and per-page rules:** override how long a page is shown, its refresh and its scrolling for a whole site or a single page, or skip it in the rotation altogether. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
+- **Auto scroll:** smoothly scroll long pages with adjustable speed and start delay, with an option to jump back to the top on each switch, move on to the next tab at the bottom, scroll back up and repeat, or scroll back up and then move on.
 - **Pause when you need it:** pause the timer when you use the mouse or keyboard, or only while hovering over the page or changing settings in the popup.
 - **Auto start:** begin rotating automatically when the browser launches or a new window opens. Great for kiosks and unattended screens.
-- **Full screen on start:** go full screen when the timer starts and restore the window when it stops.
+- **Full screen on start:** go full screen when the timer starts and restore the window when it stops. Optionally keep it full screen on every tab switch.
 - **Countdown badge:** see the seconds until the next switch on the toolbar icon, in the color of your choice, or hide it.
 - **Settings and rules page:** set defaults, auto start, full screen, badge and theme in one place, then view, filter, add, edit, duplicate and remove every saved rule, import and export them as a file to back up or copy to another computer, and reset everything to defaults in one click.
 - **Light, dark or system theme.**
@@ -181,6 +183,8 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 **Privacy**
 
 No accounts, no tracking and no data collection. Settings and rules are stored locally in your browser and never leave your computer. Site access is optional and only requested when you turn on Auto Scroll or Pause Timer: On hover.
+
+The browser describes the tabs permission as reading your browsing history. The extension has no access to your history. It only reads the addresses of your open tabs to match your page and site rules, and it never stores or sends them.
 
 **How to use**
 

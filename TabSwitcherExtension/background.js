@@ -6,6 +6,7 @@ const MIN_IDLE_SECONDS = 15; // chrome.idle will not detect idleness faster than
 const LOAD_TIMEOUT_MS = 30000;
 const PRELOAD_LEAD_MS = 5000; // how long before a switch the "Before switch" refresh runs
 const PRELOAD_VALID_MS = 20000;
+const MIN_SHOW_MS = 5000; // same floor as Show Each Tab For, so short pages can't make tabs cycle nonstop
 const HEARTBEAT_ALARM = 'heartbeat';
 const STOP_SCROLLING = { command: 'stopScrolling' };
 
@@ -118,6 +119,7 @@ function resume(w) {
 
 function restartCountdown(w) {
     w.deadline = null;
+    w.shownAt = Date.now();
     w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
     w.shownSeconds = undefined;
     w.preloadChecked = false;
@@ -160,6 +162,18 @@ async function enterFullscreen(w) {
         w.restoreState = win.state === 'minimized' ? 'normal' : win.state;
     } catch (e) {
         // Some window types or platforms refuse full screen. Keep running windowed.
+    }
+}
+
+// Minimized windows are left alone so a switch never pops one up.
+async function restoreFullscreen(w) {
+    const win = await chrome.windows.get(w.windowId).catch(() => null);
+    if (!win || (win.state !== 'normal' && win.state !== 'maximized')) return;
+    try {
+        await chrome.windows.update(w.windowId, { state: 'fullscreen' });
+        if (!w.restoreState) w.restoreState = win.state;
+    } catch (e) {
+        // Some window types or platforms refuse full screen.
     }
 }
 
@@ -217,12 +231,7 @@ function tick() {
     const now = Date.now();
     for (const [windowId, w] of windows) {
         if (w.deadline !== null && now >= w.deadline) {
-            w.deadline = null;
-            w.remaining = 0;
-            switchTab(windowId, w).catch((err) => {
-                console.warn('Tab switch failed', err);
-                if (windows.get(windowId) === w) restartCountdown(w);
-            });
+            advance(windowId, w);
         } else {
             w.shownSeconds = Math.ceil(remainingMs(w) / 1000); // same value the badge shows until the next tick
             if (w.deadline !== null && !w.preloadChecked && w.deadline - now <= PRELOAD_LEAD_MS) {
@@ -234,7 +243,31 @@ function tick() {
     }
 }
 
+// The timer ran out, or the page finished scrolling and its rule says to move on.
+function advance(windowId, w) {
+    w.deadline = null;
+    w.remaining = 0;
+    switchTab(windowId, w).catch((err) => {
+        console.warn('Tab switch failed', err);
+        if (windows.get(windowId) === w) restartCountdown(w);
+    });
+}
+
+// The timer still decides: a held or loading window ignores the early switch.
+function handleScrollFinished(tab) {
+    const w = windows.get(tab.windowId);
+    if (!w || w.activeTabId !== tab.id || isPaused(w)) return;
+    const earliest = (w.shownAt || 0) + MIN_SHOW_MS;
+    if (Date.now() < earliest) {
+        if (w.deadline > earliest) w.deadline = earliest;
+        persistRunning();
+        return;
+    }
+    advance(tab.windowId, w);
+}
+
 async function switchTab(windowId, w) {
+    if (settings.keepFullscreen) await restoreFullscreen(w);
     const tabs = await chrome.tabs.query({ windowId });
     if (windows.get(windowId) !== w) return;
     if (!tabs.length) {
@@ -273,14 +306,18 @@ async function switchTab(windowId, w) {
 function pickNext(tabs) {
     const currentIndex = tabs.findIndex((t) => t.active);
     const current = tabs[currentIndex];
-    let next = tabs[(currentIndex + 1) % tabs.length];
-    if (settings.pinnedTabs !== 'include') {
-        // Stays on the current tab when no other tab qualifies.
-        const wantPinned = settings.pinnedTabs === 'only';
-        const others = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
-        next = others.find((t) => !!t.pinned === wantPinned) || current || next;
-    }
+    const wantPinned = settings.pinnedTabs === 'only';
+    const eligible = (t) => (settings.pinnedTabs === 'include' || !!t.pinned === wantPinned) && !isSkippedTab(t);
+    // Starts after the current tab and ends on it, so the current tab is only picked when nothing else qualifies.
+    const ordered = tabs.map((_, i) => tabs[(currentIndex + 1 + i) % tabs.length]);
+    // Stays on the current tab when no other tab qualifies.
+    const next = ordered.find(eligible) || current || ordered[0];
     return { current, next };
+}
+
+function isSkippedTab(tab) {
+    const url = tab.url || tab.pendingUrl;
+    return (settings.skipInternalPages && isInternalUrl(url)) || isSkippedByRule(settings, url);
 }
 
 // Reloads the next tab shortly before its turn, so it is already fresh when shown.
@@ -412,7 +449,7 @@ function updatePause(w) {
 }
 
 function scrollSignature(s) {
-    return JSON.stringify([s.pauseMode, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll])]);
+    return JSON.stringify([s.pauseMode, s.skipInternalPages, s.defaultScroll, Object.entries(s.pageRules).map(([key, rule]) => [key, rule.scroll, rule.skip])]);
 }
 
 function applySettingsChange(prev) {
@@ -456,16 +493,19 @@ async function startScrolling(tabId, onArrival) {
     // The timer may have stopped while we waited, and scrolling only runs with the timer.
     if (!tab || !windows.has(tab.windowId)) return;
     const scroll = scrollSettingsFor(settings, tab.url);
+    const autoScroll = scroll.autoScroll && !isSkippedTab(tab);
     const pauseOnHover = settings.pauseMode === 'hover';
-    if (!scroll.autoScroll && !pauseOnHover) {
+    if (!autoScroll && !pauseOnHover) {
         sendToTab(tabId, STOP_SCROLLING);
         return;
     }
     const message = {
         command: 'startScrolling',
-        autoScroll: scroll.autoScroll,
+        autoScroll,
         speed: scroll.scrollSpeed,
         delay: scroll.scrollDelay,
+        atEnd: scroll.atEnd,
+        endDelay: scroll.endDelay,
         scrollToTop: onArrival && scroll.scrollToTop,
         pauseOnHover,
         paused: scrollHeld(windows.get(tab.windowId))
@@ -526,6 +566,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
         else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
         else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
+        else if (msg.command === 'scrollFinished' && sender.tab) handleScrollFinished(sender.tab);
         const w = windows.get(msg.windowId);
         sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null });
     });

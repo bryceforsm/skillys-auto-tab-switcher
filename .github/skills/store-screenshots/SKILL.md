@@ -1,6 +1,6 @@
 ---
 name: store-screenshots
-description: 'Regenerate the README image and Chrome Web Store screenshots of the popup and rules page. Use when UI, labels or layout change, or when asked to take, refresh or update screenshots, store images or the README picture.'
+description: 'Regenerate the README image, Chrome Web Store screenshots and promo tiles of the popup and rules page. Use when UI, labels or layout change, or when asked to take, refresh or update screenshots, store images, promo tiles or the README picture.'
 ---
 
 # Store and README Screenshots
@@ -23,8 +23,13 @@ Renders the real `popup.html` and `rules.html` with sample data in headless Edge
    | `Screenshots/webstore/popup-light.png`, `popup-dark.png` | 1280x800 store screenshots |
 | `Screenshots/webstore/popup-defaults.png` | 1280x800, out-of-box settings with no rules and the timer stopped |
    | `Screenshots/webstore/rules-light.png`, `rules-edit-dark.png` | 1280x800 store screenshots |
+   | `Screenshots/webstore/promo-small.png`, `promo-marquee.png` | 440x280 and 1400x560 store promo tiles (step 4) |
 
 3. If text is cut off, fix the UI (shorter label or wider control), then run the script again.
+4. Redraw the promo tiles with [the promo script](./scripts/New-PromoTiles.ps1) when the popup, icon or branding changed. It reads `Screenshots/readme/popup-defaults.png`, so run it after step 1:
+   ```powershell
+   & '.\.github\skills\store-screenshots\scripts\New-PromoTiles.ps1'
+   ```
 
 ## Changing what is shown
 

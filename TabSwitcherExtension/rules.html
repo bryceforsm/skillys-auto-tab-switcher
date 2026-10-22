@@ -492,6 +492,10 @@
                     <label for="fullscreenOnStart">Full Screen on Timer Start:</label>
                     <input type="checkbox" id="fullscreenOnStart">
                 </div>
+                <div class="control-group" title="If the window leaves full screen while the timer runs, such as after pressing F11 by accident, put it back in full screen on the next tab switch. Stop the timer to stay out of full screen.">
+                    <label for="keepFullscreen">Keep Full Screen on Switch:</label>
+                    <input type="checkbox" id="keepFullscreen">
+                </div>
                 <div class="control-group" title="Press this key combination to start or stop the timer in the current window. Click to change it in the browser's shortcut settings.">
                     <label for="shortcutBtn">Start/Stop Shortcut:</label>
                     <button type="button" id="shortcutBtn">Not set</button>
@@ -510,6 +514,10 @@
                         <option value="skip">Skip pinned tabs</option>
                         <option value="only">Only pinned tabs</option>
                     </select>
+                </div>
+                <div class="control-group" title="Leave browser pages such as chrome://extensions, edge://settings and about:config out of the rotation.">
+                    <label for="skipInternalPages">Skip Browser Pages:</label>
+                    <input type="checkbox" id="skipInternalPages">
                 </div>
                 <div class="control-group" title="Show the countdown on the extension icon, in the color of your choice.">
                     <label for="badgeVisible">Countdown Badge:</label>
@@ -557,6 +565,19 @@
                         <label for="scrollSpeed">Scroll Speed: <span id="scrollSpeedDisplay">20</span></label>
                         <input type="range" id="scrollSpeed" min="1" max="100" value="20">
                     </div>
+                    <div class="control-group" title="What happens when auto scroll reaches the bottom of the page. The timer still switches tabs when it runs out.">
+                        <label for="scrollEnd">At Bottom:</label>
+                        <select id="scrollEnd">
+                            <option value="stop">Stop</option>
+                            <option value="next">Go to next tab</option>
+                            <option value="yoyo">Scroll back up</option>
+                            <option value="yoyoNext">Back up, then next tab</option>
+                        </select>
+                    </div>
+                    <div id="endDelayWrap" class="control-group" title="Wait this many seconds at the bottom before moving on.">
+                        <label for="endDelay">Wait at Bottom (sec):</label>
+                        <input type="number" id="endDelay" min="0" max="3600" value="5">
+                    </div>
                 </div>
             </fieldset>
         </section>
@@ -580,6 +601,7 @@
                     <th><button type="button" class="sort" data-sort="display">Show For</button></th>
                     <th><button type="button" class="sort" data-sort="refresh">Refresh</button></th>
                     <th><button type="button" class="sort" data-sort="scroll">Auto Scroll</button></th>
+                    <th><button type="button" class="sort" data-sort="skip">Rotation</button></th>
                     <th></th>
                 </tr>
             </thead>
@@ -655,7 +677,29 @@
                     <label for="editSpeed">Scroll Speed: <span id="editSpeedDisplay">20</span></label>
                     <input type="range" id="editSpeed" min="1" max="100" value="20">
                 </div>
+                <div class="control-group">
+                    <label for="editEnd">At Bottom:</label>
+                    <select id="editEnd">
+                        <option value="stop">Stop</option>
+                        <option value="next">Go to next tab</option>
+                        <option value="yoyo">Scroll back up</option>
+                        <option value="yoyoNext">Back up, then next tab</option>
+                    </select>
+                </div>
+                <div id="editEndDelayWrap" class="control-group">
+                    <label for="editEndDelay">Wait at Bottom (sec):</label>
+                    <input type="number" id="editEndDelay" min="0" value="5">
+                </div>
             </div>
+            <div class="control-group" title="Skip leaves it out of the rotation, for example a site that keeps signing out. On a page rule, Include anyway keeps the page in even when its site is skipped.">
+                <label for="editSkip">Rotation:</label>
+                <select id="editSkip">
+                    <option value="default">Use default</option>
+                    <option value="skip">Skip</option>
+                    <option value="keep">Always include (page only)</option>
+                </select>
+            </div>
+            <div id="editSkipNote" class="muted" hidden>Skipped tabs are never switched to, so this rule's Show For, Refresh and Auto Scroll settings are ignored.</div>
             <div class="dialog-buttons">
                 <button type="button" id="cancelEdit">Cancel</button>
                 <button type="submit" class="primary">Save Rule</button>

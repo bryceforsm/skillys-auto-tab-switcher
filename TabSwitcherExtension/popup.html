@@ -87,9 +87,18 @@
             grid-column: span 2;
         }
         .check-field {
+            display: flex;
             flex-direction: row;
             align-items: center;
             gap: 8px;
+        }
+        .check-field input[type="checkbox"] {
+            margin: 0;
+            flex: none;
+        }
+        .check-field label {
+            line-height: 18px;
+            cursor: pointer;
         }
         .split-input-row {
             display: flex;
@@ -97,6 +106,29 @@
         }
         .split-input-row select {
             flex: 1;
+        }
+        .to-top-row {
+            align-items: center;
+            gap: 14px;
+        }
+        .split-input-row input[type="range"] {
+            flex: 1;
+            width: auto;
+            min-width: 0;
+        }
+        /* Level with the Apply To select beside it. */
+        .skip-field {
+            align-self: end;
+            min-height: 30px;
+        }
+        .end-wait {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .end-wait > label {
+            font-size: 12px;
+            white-space: nowrap;
         }
         .form-field .number-field {
             align-self: flex-start;
@@ -677,7 +709,15 @@
                         <option value="page">This page only</option>
                     </select>
                 </div>
-                <div class="form-field" title="How long this site or page stays on screen before switching to the next tab.">
+                <div class="form-field" title="Whether this tab is switched to. On a page, Include anyway keeps it in the rotation even when its site is skipped.">
+                    <label for="ruleSkip">Rotation</label>
+                    <select id="ruleSkip">
+                        <option value="default">Use default</option>
+                        <option value="skip">Skip tab</option>
+                        <option value="keep">Always include</option>
+                    </select>
+                </div>
+                <div class="form-field rotation-opt" title="How long this site or page stays on screen before switching to the next tab.">
                     <label for="ruleDisplayMode">Show For</label>
                     <div class="split-input-row">
                         <select id="ruleDisplayMode">
@@ -690,40 +730,62 @@
                         </span>
                     </div>
                 </div>
-                <div class="form-field" title="How this site or page is refreshed.">
+                <div class="form-field rotation-opt" title="How this site or page is refreshed. The number is the age limit or refresh period in minutes.">
                     <label for="ruleMode">Refresh Mode</label>
-                    <select id="ruleMode"></select>
-                </div>
-                <div id="ruleMinutesWrap" class="form-field" title="Age limit or refresh period for this rule, in minutes.">
-                    <label for="ruleMinutes" id="ruleMinutesLabel">Refresh Every</label>
-                    <span class="number-field">
-                        <input type="number" id="ruleMinutes" min="1" max="1440" value="5">
-                        <label for="ruleMinutes" class="unit">min</label>
-                    </span>
-                </div>
-                <div class="form-field" title="Whether this site or page auto scrolls.">
-                    <label for="ruleScrollMode">Auto Scroll</label>
-                    <select id="ruleScrollMode">
-                        <option value="default">Use default</option>
-                        <option value="off">Disable</option>
-                        <option value="on">Enable</option>
-                    </select>
-                </div>
-                <div id="ruleScrollOptions">
-                    <div class="form-field" title="Wait this many seconds before starting to scroll after switching.">
-                        <label for="ruleScrollDelay">Scroll Delay</label>
-                        <span class="number-field">
-                            <input type="number" id="ruleScrollDelay" min="0" max="3600" value="5">
-                            <label for="ruleScrollDelay" class="unit">sec</label>
+                    <div class="split-input-row">
+                        <select id="ruleMode"></select>
+                        <span id="ruleMinutesWrap" class="number-field">
+                            <label for="ruleMinutes" id="ruleMinutesLabel" hidden>Refresh Every</label>
+                            <input type="number" id="ruleMinutes" min="1" max="1440" value="5" aria-labelledby="ruleMinutesLabel">
+                            <label for="ruleMinutes" class="unit">min</label>
                         </span>
                     </div>
-                    <div class="form-field" title="How fast this page scrolls.">
-                        <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
-                        <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
+                </div>
+                <div class="form-field rotation-opt" title="Whether this site or page auto scrolls.">
+                    <label for="ruleScrollMode">Auto Scroll</label>
+                    <div class="split-input-row to-top-row">
+                        <select id="ruleScrollMode">
+                            <option value="default">Use default</option>
+                            <option value="off">Disable</option>
+                            <option value="on">Enable</option>
+                        </select>
+                        <span id="ruleScrollToTopWrap" class="check-field" title="Scroll back to the top of this page when switching to it.">
+                            <input type="checkbox" id="ruleScrollToTop">
+                            <label for="ruleScrollToTop">Scroll to Top on Switch</label>
+                        </span>
                     </div>
-                    <div class="form-field check-field" title="Scroll back to the top of this page when switching to it.">
-                        <input type="checkbox" id="ruleScrollToTop">
-                        <label for="ruleScrollToTop">Scroll to Top on Switch</label>
+                </div>
+                <div id="ruleScrollOptions">
+                    <div class="form-field" title="How fast this page scrolls, and how long to wait before it starts after switching.">
+                        <label for="ruleScrollSpeed">Scroll Speed: <span id="ruleScrollSpeedDisplay">20</span></label>
+                        <div class="split-input-row to-top-row">
+                            <input type="range" id="ruleScrollSpeed" min="1" max="100" value="20">
+                            <span class="end-wait">
+                                <label for="ruleScrollDelay">start after</label>
+                                <span class="number-field">
+                                    <input type="number" id="ruleScrollDelay" min="0" max="3600" value="5">
+                                    <label for="ruleScrollDelay" class="unit">sec</label>
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-field" title="What happens when auto scroll reaches the bottom of this page. The timer still switches tabs when it runs out.">
+                        <label for="ruleScrollEnd">At Bottom</label>
+                        <div class="split-input-row">
+                            <select id="ruleScrollEnd">
+                                <option value="stop">Stop</option>
+                                <option value="next">Go to next tab</option>
+                                <option value="yoyo">Scroll back up</option>
+                                <option value="yoyoNext">Back up, then next tab</option>
+                            </select>
+                            <span id="ruleScrollEndDelayWrap" class="end-wait" title="Wait this many seconds at the bottom before this happens.">
+                                <label for="ruleScrollEndDelay">after</label>
+                                <span class="number-field">
+                                    <input type="number" id="ruleScrollEndDelay" min="0" max="3600" value="5">
+                                    <label for="ruleScrollEndDelay" class="unit">sec</label>
+                                </span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
