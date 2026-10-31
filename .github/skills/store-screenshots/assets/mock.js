@@ -39,7 +39,7 @@
         permissions: { contains: async () => true, request: async () => true, onAdded: { addListener() {} }, onRemoved: { addListener() {} } },
         commands: { getAll: async () => [{ name: 'toggle-timer', shortcut: 'Alt+Shift+S' }] },
         tabs: { query: async () => [{ id: 1, url: params.get('tab') || 'https://github.com/bryceforsm/skillys-auto-tab-switcher' }], create() {} },
-        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox, seconds: 12, paused: params.get('paused') === '1', loading: false }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
+        runtime: { getManifest: () => ({ version: '2.1.2' }), sendMessage: async () => ({ running: !outOfBox, seconds: 12, paused: params.get('paused') === '1', loading: false, stay: params.get('stay') === '1' }), connect: () => ({ postMessage() {} }), openOptionsPage() {} }
     };
 
     document.addEventListener('DOMContentLoaded', () => {

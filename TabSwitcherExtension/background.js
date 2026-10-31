@@ -16,6 +16,7 @@ let tabLoadedAt = {}; // tabId -> timestamp of the last completed load
 let loadTimesTimer = null;
 let ticker = null;
 const windows = new Map(); // windowId -> state, only for windows where the timer is running
+const stayWindows = new Set(); // windows that refresh the active tab instead of switching
 const popupWindows = new Set(); // windows with the popup open
 
 const CONTENT_SCRIPT_ID = 'content-scroll';
@@ -45,10 +46,11 @@ syncContentScript().catch((err) => console.error('Content script sync failed', e
 async function init() {
     const [local, session] = await Promise.all([
         chrome.storage.local.get(null),
-        chrome.storage.session.get(['running', 'tabLoadedAt'])
+        chrome.storage.session.get(['running', 'tabLoadedAt', 'stayWindows'])
     ]);
     settings = normalizeSettings(local);
     tabLoadedAt = session.tabLoadedAt || {};
+    for (const id of session.stayWindows || []) stayWindows.add(id);
 
     chrome.idle.setDetectionInterval(idleSeconds());
     await refreshActivityState();
@@ -117,10 +119,27 @@ function resume(w) {
     if (w.deadline === null && !isPaused(w)) w.deadline = Date.now() + w.remaining;
 }
 
+function intervalSeconds(s, w) {
+    return stayWindows.has(w.windowId) ? s.switchInterval : displaySecondsFor(s, w.activeUrl);
+}
+
+function persistStayWindows() {
+    chrome.storage.session.set({ stayWindows: [...stayWindows] });
+}
+
+function setStayOnPage(windowId, stay) {
+    if (stay) stayWindows.add(windowId); else stayWindows.delete(windowId);
+    persistStayWindows();
+    const w = windows.get(windowId);
+    if (!w) return;
+    restartCountdown(w);
+    renderBadge(windowId);
+}
+
 function restartCountdown(w) {
     w.deadline = null;
     w.shownAt = Date.now();
-    w.remaining = displaySecondsFor(settings, w.activeUrl) * 1000;
+    w.remaining = intervalSeconds(settings, w) * 1000;
     w.shownSeconds = undefined;
     w.preloadChecked = false;
     resume(w);
@@ -255,6 +274,7 @@ function advance(windowId, w) {
 
 // The timer still decides: a held or loading window ignores the early switch.
 function handleScrollFinished(tab) {
+    if (stayWindows.has(tab.windowId)) return;
     const w = windows.get(tab.windowId);
     if (!w || w.activeTabId !== tab.id || isPaused(w)) return;
     const earliest = (w.shownAt || 0) + MIN_SHOW_MS;
@@ -306,6 +326,7 @@ async function switchTab(windowId, w) {
 function pickNext(tabs) {
     const currentIndex = tabs.findIndex((t) => t.active);
     const current = tabs[currentIndex];
+    if (current && stayWindows.has(current.windowId)) return { current, next: current };
     const wantPinned = settings.pinnedTabs === 'only';
     const eligible = (t) => (settings.pinnedTabs === 'include' || !!t.pinned === wantPinned) && !isSkippedTab(t);
     // Starts after the current tab and ends on it, so the current tab is only picked when nothing else qualifies.
@@ -316,6 +337,7 @@ function pickNext(tabs) {
 }
 
 function isSkippedTab(tab) {
+    if (stayWindows.has(tab.windowId)) return false;
     const url = tab.url || tab.pendingUrl;
     return (settings.skipInternalPages && isInternalUrl(url)) || isSkippedByRule(settings, url);
 }
@@ -332,6 +354,7 @@ async function preloadNext(windowId, w) {
 }
 
 function shouldRefreshOnSwitch(w, tab) {
+    if (stayWindows.has(w.windowId)) return true;
     const rule = refreshRuleFor(settings, tab.url || tab.pendingUrl);
     switch (rule.mode) {
         case 'switch':
@@ -376,6 +399,7 @@ function tabReady(w, tabId) {
 async function backgroundRefresh() {
     const now = Date.now();
     for (const windowId of [...windows.keys()]) {
+        if (stayWindows.has(windowId)) continue;
         const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
         for (const tab of tabs) {
             if (tab.active || tab.status !== 'complete') continue;
@@ -457,7 +481,7 @@ function applySettingsChange(prev) {
 
     for (const [windowId, w] of windows) {
         if (prev.pauseMode === 'hover' && settings.pauseMode !== 'hover') w.hoverPaused = false;
-        if (displaySecondsFor(prev, w.activeUrl) !== displaySecondsFor(settings, w.activeUrl)) {
+        if (intervalSeconds(prev, w) !== intervalSeconds(settings, w)) {
             restartCountdown(w);
         } else if (isPaused(w)) {
             pause(w);
@@ -565,10 +589,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const fromPopup = !sender.tab;
         if (msg.command === 'startTimer' && fromPopup) await startWindow(msg.windowId);
         else if (msg.command === 'stopTimer' && fromPopup) await stopWindow(msg.windowId);
+        else if (msg.command === 'setStayOnPage' && fromPopup) setStayOnPage(msg.windowId, msg.stay);
         else if (msg.command === 'hoverStateChange') handleHover(msg.isHovering, sender.tab);
         else if (msg.command === 'scrollFinished' && sender.tab) handleScrollFinished(sender.tab);
         const w = windows.get(msg.windowId);
-        sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null });
+        sendResponse({ running: !!w, seconds: w ? (w.shownSeconds ?? Math.ceil(remainingMs(w) / 1000)) : 0, paused: !!w && isPaused(w), loading: !!w && w.waitingTabId !== null, stay: stayWindows.has(msg.windowId) });
     });
     return true;
 });
@@ -675,7 +700,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.windows.onRemoved.addListener((windowId) => {
-    ready.then(() => forgetWindow(windowId));
+    ready.then(() => {
+        forgetWindow(windowId);
+        if (stayWindows.delete(windowId)) persistStayWindows();
+    });
 });
 
 chrome.idle.onStateChanged.addListener((state) => {

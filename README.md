@@ -20,6 +20,7 @@ This extension automatically switches between your open tabs at an interval you 
 ## Features
 
 - **Auto Tab Switching:** Cycles through all open tabs in the window.
+- **Stay and Refresh:** Stay on the page on screen and refresh it at your interval instead of switching tabs.
 - **Per-Page Rules:** Override how long the page is shown, refresh and auto scroll for a whole site or a single page. Refresh can happen on switch, before switch, never, only when older than N minutes, or periodically in the background so the page is already fresh when shown.
 - **Window Isolation:** Works only on the window where it was activated.
 - **Auto Scroll:** Automatically scrolls down the page at a configurable speed. At the bottom it can stop, move on to the next tab after a delay, or scroll back up and repeat (yoyo). It can also scroll back up to the top and then move on to the next tab. The timer still switches tabs when it runs out. Auto Scroll and On hover need site access, which is only requested when you click **Allow** on the notice that appears after you turn them on. Everything else works without it.
@@ -57,6 +58,7 @@ No accounts, no tracking and no data collection. Settings and rules stay in your
 1.  **Popup:**
     - Click the extension icon to open the popup. Changes save as soon as you make them.
     - Set **Show Each Tab For** in seconds (minimum 5).
+    - Tick **Stay and Refresh Page** to stay on the tab on screen and refresh it instead of switching. **Show Each Tab For** becomes **Refresh Every**. Page and site rules for Show For, Refresh and Rotation are ignored while this is on, and background refreshes stop. Auto Scroll still applies, but At Bottom options that move to the next tab just stop at the bottom. If you pick another tab yourself, that tab is the one refreshed. It only applies to the window you tick it in, and it starts unticked in new windows and after the browser restarts. The interval itself is shared with other windows.
     - Select **Pause Timer** mode: Disable, On activity, or On hover. On hover also pauses while this popup is open. On hover can't detect the pointer on pages where Chrome blocks extensions, such as `chrome://` pages, the Chrome Web Store and the new tab page. Use On activity there.
     - **Current Tab** shows the site or page open in the active tab and the settings in effect for it, each marked **page rule**, **site rule** or **default**. Next to the address, **Page rule** and **Site rule** light up when this page or its whole site has a rule. Click **Reset** on either one to remove that rule and go back to the defaults (click **Undo** if you change your mind). Click **Page rule** or **Site rule** to open the editor for that scope and give it its own rule (the editor always starts collapsed):
         - **Apply To** picks the whole site or this page only. A page rule beats a site rule, and each setting is resolved separately, so a page can override scrolling while still using its site's refresh rule.

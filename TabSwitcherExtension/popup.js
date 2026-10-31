@@ -3,6 +3,7 @@ const MINUTE_MODES = ['stale', 'background'];
 
 let currentWindowId = null;
 let timerRunning = false;
+let stayOnPage = false; // per window, kept by the background
 let defaults = normalizeSettings({}); // stored settings, for the defaults rules fall back to
 let rules = {};        // pageRules, written to storage on every edit
 let pageKeys = null;   // rule keys for the active tab, null when rules cannot apply to it
@@ -23,16 +24,21 @@ async function init() {
     currentWindowId = win.id;
     chrome.runtime.connect({ name: 'popup' }).postMessage({ windowId: currentWindowId });
     defaults = normalizeSettings(stored);
+    const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
+    stayOnPage = !!response?.stay;
 
     rules = defaults.pageRules;
     $('interval').value = defaults.switchInterval;
+    $('stayOnPage').checked = stayOnPage;
     $('pauseMode').value = defaults.pauseMode;
 
     setupPageEditor(tab);
     renderRuleState();
     updateVisibility();
+    updateIntervalLabel();
 
     watch('interval', saveGeneral);
+    watch('stayOnPage', saveStayOnPage);
     watch('pauseMode', saveGeneral);
     setupSteppers();
     $('ruleScope').addEventListener('change', loadEditorRule);
@@ -62,7 +68,6 @@ async function init() {
     chrome.permissions.onAdded.addListener(showAccessNote);
     chrome.permissions.onRemoved.addListener(showAccessNote);
 
-    const response = await chrome.runtime.sendMessage({ command: 'getTimerState', windowId: currentWindowId });
     timerRunning = !!response?.running;
     updateButtonState();
     showShortcut();
@@ -99,7 +104,7 @@ async function refreshCountdown() {
     if (state?.running) {
         if (state.loading) text = 'Loading page';
         else if (state.paused) text = `Paused at ${state.seconds}s`;
-        else text = `Next tab in ${state.seconds}s`;
+        else text = `${stayOnPage ? 'Refresh' : 'Next tab'} in ${state.seconds}s`;
     }
     countdownText = text;
     renderHint();
@@ -171,6 +176,21 @@ function saveGeneral(committed) {
     chrome.storage.local.set({ switchInterval: defaults.switchInterval, pauseMode: defaults.pauseMode });
     showAccessNote();
     updateEffectiveRule();
+}
+
+async function saveStayOnPage() {
+    stayOnPage = $('stayOnPage').checked;
+    updateIntervalLabel();
+    updateEffectiveRule();
+    await chrome.runtime.sendMessage({ command: 'setStayOnPage', windowId: currentWindowId, stay: stayOnPage });
+    refreshCountdown();
+}
+
+function updateIntervalLabel() {
+    $('intervalLabel').textContent = stayOnPage ? 'Refresh Every' : 'Show Each Tab For';
+    $('intervalGroup').title = stayOnPage
+        ? 'How many seconds between refreshes of the tab on screen.'
+        : 'How many seconds each tab stays on screen before switching to the next one.';
 }
 
 async function showAccessNote() {
@@ -310,13 +330,19 @@ function updateEffectiveRule() {
         defaultRefresh: defaults.defaultRefresh,
         defaultScroll: defaults.defaultScroll
     };
-    const rows = isSkippedByRule(s, pageUrl)
-        ? [['Rotation:', 'Skipped, never switched to', sectionSource('skip')]]
-        : [
+    const scrollRow = ['Auto Scroll:', describeScroll(scrollSettingsFor(s, pageUrl)), sectionSource('scroll')];
+    let rows;
+    if (stayOnPage) {
+        rows = [['Refresh:', `Every ${describeDisplay(s.switchInterval)}`, 'stay and refresh'], scrollRow];
+    } else if (isSkippedByRule(s, pageUrl)) {
+        rows = [['Rotation:', 'Skipped, never switched to', sectionSource('skip')]];
+    } else {
+        rows = [
             ['Show For:', describeDisplay(displaySecondsFor(s, pageUrl)), sectionSource('display')],
             ['Refresh:', describeRefresh(refreshRuleFor(s, pageUrl)), sectionSource('refresh')],
-            ['Auto Scroll:', describeScroll(scrollSettingsFor(s, pageUrl)), sectionSource('scroll')]
+            scrollRow
         ];
+    }
     $('effectiveRule').replaceChildren(...rows.map(([label, value, source]) => {
         const item = document.createElement('div');
         item.className = 'summary-item';
