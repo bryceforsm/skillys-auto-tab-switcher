@@ -136,9 +136,9 @@
         .split-input-row .number-field {
             align-self: auto;
         }
-        /* The two basics are sized by content, with the second pinned to the right edge. */
+        /* The basics are sized by content, with the last pinned to the right edge. */
         .basics {
-            grid-template-columns: auto auto;
+            grid-template-columns: auto auto auto;
             justify-content: space-between;
             margin-bottom: 6px;
         }
@@ -151,6 +151,32 @@
         .basics .control-group > label {
             font-size: 12px;
             font-weight: 500;
+        }
+        /* A bordered box with its label inside, level with the boxes beside it. */
+        .basics .control-group.stay-field {
+            flex-direction: row;
+            align-items: center;
+            align-self: end;
+            gap: 7px;
+            box-sizing: border-box;
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid #bdc1c6;
+            border-radius: 8px;
+            background-color: #ffffff;
+        }
+        .basics .control-group.stay-field:has(input:checked) {
+            border-color: #1a73e8;
+        }
+        .stay-field input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            margin: 0;
+            flex: none;
+        }
+        .basics .stay-field > label {
+            white-space: nowrap;
+            cursor: pointer;
         }
         .basics .control-group select {
             flex: none;
@@ -576,6 +602,13 @@
             .number-field:focus-within {
                 border-color: #8ab4f8;
             }
+            .basics .control-group.stay-field {
+                background-color: #171a20;
+                border-color: #2b303b;
+            }
+            .basics .control-group.stay-field:has(input:checked) {
+                border-color: #8ab4f8;
+            }
             .number-field .step {
                 color: #9aa0a6;
             }
@@ -667,14 +700,18 @@
         </div>
     </div>
     <div class="basics">
-    <div class="control-group" title="How many seconds each tab stays on screen before switching to the next one.">
-        <label for="interval">Show Each Tab For</label>
+    <div class="control-group" id="intervalGroup" title="How many seconds each tab stays on screen before switching to the next one.">
+        <label for="interval" id="intervalLabel">Show Each Tab For</label>
         <span class="number-field">
             <button type="button" class="step" data-dir="-1" aria-label="Decrease" title="Subtract 5 seconds. Hold to repeat, Shift for 1.">&minus;</button>
             <input type="number" id="interval" min="5" max="86400" value="30">
             <label for="interval" class="unit">sec</label>
             <button type="button" class="step" data-dir="1" aria-label="Increase" title="Add 5 seconds. Hold to repeat, Shift for 1.">+</button>
         </span>
+    </div>
+    <div class="control-group stay-field" title="Stay on the tab on screen and refresh it every interval instead of switching tabs. If you pick another tab yourself, that tab is refreshed instead.">
+        <input type="checkbox" id="stayOnPage">
+        <label for="stayOnPage">Stay and Refresh Page</label>
     </div>
     <div class="control-group" title="Choose how to pause the timer: Disable (never pause), On activity (pause when mouse/keyboard used), or On hover (pause when mouse is over the page or this popup is open).">
         <label for="pauseMode">Pause Timer</label>

@@ -22,6 +22,7 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 
 FEATURES
 - Automatic tab switching: rotate through every tab in the window at an interval you choose (5 seconds or more).
+- Stay and refresh: stay on the page on screen and refresh it at your interval instead of switching tabs.
 - Window isolation: the timer only affects the window it was started in.
 - Smart refresh: reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
 - Per-site and per-page rules: override how long a page is shown, its refresh and its scrolling for a whole site or a single page, or skip it in the rotation altogether. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
@@ -161,6 +162,7 @@ Most tab rotators either reload every page on every switch (slow and flickery) o
 **Features**
 
 - **Automatic tab switching:** rotate through every tab in the window at an interval you choose (5 seconds or more).
+- **Stay and refresh:** stay on the page on screen and refresh it at your interval instead of switching tabs.
 - **Window isolation:** the timer only affects the window it was started in.
 - **Smart refresh:** reload on switch, before switch, never, only when the page is older than N minutes, or periodically in the background so it is ready before it is shown.
 - **Per-site and per-page rules:** override how long a page is shown, its refresh and its scrolling for a whole site or a single page, or skip it in the rotation altogether. Keep a key dashboard on screen longer while everything else rotates quickly. Page rules win over site rules, and each setting falls back to your defaults on its own.
